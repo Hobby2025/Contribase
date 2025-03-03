@@ -1,0 +1,45 @@
+{
+  "name": "contribase",
+  "version": "1.0.0",
+  "description": "![License](https://img.shields.io/badge/License-MIT-black)&nbsp;\r ![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=nextdotjs&logoColor=white)&nbsp;\r ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)&nbsp;\r ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white)&nbsp;",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hobby2025/Contribase.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Hobby2025/Contribase/issues"
+  },
+  "homepage": "https://github.com/Hobby2025/Contribase#readme",
+  "dependencies": {
+    "@types/node": "^22.13.8",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@xenova/transformers": "^2.17.2",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.21.0",
+    "eslint-config-next": "^15.2.0",
+    "next": "^15.2.0",
+    "next-auth": "^4.24.11",
+    "octokit": "^4.1.2",
+    "pdf-lib": "^1.17.1",
+    "postcss": "^8.5.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.7.3"
+  },
+  "devDependencies": {
+    "null-loader": "^4.0.1"
+  }
+}
