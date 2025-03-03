@@ -129,6 +129,25 @@ npm -v   # v9.x 이상
 - 분석 결과 페이지 하단의 "PDF로 다운로드" 버튼을 클릭합니다.
 - 생성된 PDF에는 저장소 정보, 기술 스택 분석, 기여도 분석, 코드 품질 평가가 포함됩니다.
 
+## 버전 관리
+
+커밋 메시지에 따라 자동으로 버전이 업데이트됩니다:
+
+1. **일반 업데이트** (z 증가)
+   - 일반적인 커밋
+   - 예: `fix: 버그 수정`
+
+2. **마이너 업데이트** (y 증가)
+   - 커밋 메시지에 `#minor` 포함
+   - 예: `feat: 새로운 기능 추가 #minor`
+
+3. **메이저 업데이트** (x 증가)
+   - 커밋 메시지에 `#major` 포함
+   - 예: `feat: 주요 기능 변경 #major`
+
+4. **버전 업데이트 제외**
+   - 커밋 메시지에 `#noversion` 포함
+
 ## 기여자
 <a href = "https://github.com/Hobby2025/Contribase/graphs/contributors">
   <img src = "https://contrib.rocks/image?repo=Hobby2025/Contribase" height="40"/>

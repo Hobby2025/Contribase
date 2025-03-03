@@ -1,0 +1,75 @@
+name: Release Management
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'package.json'
+
+jobs:
+  version-and-release:
+    if: '!contains(github.event.head_commit.message, ''chore: bump version'')'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Update Version
+        id: version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          
+          # #noversion 키워드가 있으면 스킵 플래그 설정
+          if [[ $COMMIT_MSG == *"#noversion"* ]]; then
+            echo "Skipping version update"
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          if [[ $COMMIT_MSG == *"#major"* ]]; then
+            NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print ($1+1) ".0.1"}')
+          elif [[ $COMMIT_MSG == *"#minor"* ]]; then
+            NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1 "." ($2+1) ".1"}')
+          else
+            NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1 "." $2 "." ($3+1)}')
+          fi
+          
+          echo "New version: $NEW_VERSION"
+          npm version $NEW_VERSION --no-git-tag-version
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "skip=false" >> $GITHUB_OUTPUT
+
+      - name: Commit and Push Changes
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
+          git tag "v${{ steps.version.outputs.new_version }}"
+          git push
+          git push --tags
+
+      - name: Create Release
+        if: steps.version.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "v${{ steps.version.outputs.new_version }}"
+          name: "Release v${{ steps.version.outputs.new_version }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }} 
