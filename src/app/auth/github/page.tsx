@@ -36,7 +36,13 @@ function GitHubAuthContent() {
     const startAuth = async () => {
       try {
         setIsLoading(true)
-        await signIn('github', { callbackUrl: callbackUrl, redirect: false })
+        // 환경에 따라 다른 callbackUrl 사용
+        const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL 
+          ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` 
+          : process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        const finalCallbackUrl = `${baseUrl}${callbackUrl.startsWith('/') ? callbackUrl : `/${callbackUrl}`}`;
+        
+        await signIn('github', { callbackUrl: finalCallbackUrl, redirect: false })
       } catch (err) {
         setIsLoading(false)
         setError('GitHub 인증을 시작하는 중 오류가 발생했습니다.')

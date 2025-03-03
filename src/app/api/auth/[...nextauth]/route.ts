@@ -1,6 +1,11 @@
 import NextAuth from 'next-auth'
 import GithubProvider from 'next-auth/providers/github'
 
+// 환경에 따른 URL 설정
+const baseUrl = process.env.VERCEL_URL 
+  ? `https://${process.env.VERCEL_URL}` 
+  : process.env.NEXTAUTH_URL || 'http://localhost:3000';
+
 const handler = NextAuth({
   providers: [
     GithubProvider({
@@ -35,6 +40,19 @@ const handler = NextAuth({
     newUser: '/dashboard',  // 새 사용자 등록 후 리디렉션 페이지
   },
   secret: process.env.NEXTAUTH_SECRET,
+  // 환경에 따른 쿠키 설정
+  useSecureCookies: process.env.NODE_ENV === 'production',
+  cookies: {
+    sessionToken: {
+      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+  },
 })
 
 export { handler as GET, handler as POST } 
