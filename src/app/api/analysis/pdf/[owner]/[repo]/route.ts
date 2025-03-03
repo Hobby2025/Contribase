@@ -52,7 +52,7 @@ async function fetchAnalysisData(accessToken: string, owner: string, repo: strin
 
 export async function GET(
   request: NextRequest,
-  context: { params: { owner: string; repo: string } }
+  { params }: { params: Promise<{ owner: string; repo: string }> }
 ) {
   try {
     // 인증 세션 확인
@@ -64,10 +64,8 @@ export async function GET(
       )
     }
 
-    // Next.js 15에서는 context.params를 직접 사용합니다
-    // 비동기 작업을 위한 추가 처리는 필요하지 않습니다
-    const owner = context.params.owner;
-    const repo = context.params.repo;
+    // Next.js 15에서는 params가 Promise이므로 await로 처리해야 합니다
+    const { owner, repo } = await params;
     
     if (!owner || !repo) {
       return NextResponse.json(
