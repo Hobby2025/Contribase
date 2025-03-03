@@ -1,10 +1,7 @@
 {
-  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/dashboard/analysis/[owner]/[repo]/page": "app/dashboard/analysis/[owner]/[repo]/page.js",
   "/page": "app/page.js",
   "/features/page": "app/features/page.js",
   "/about/page": "app/about/page.js",
   "/auth/login-required/page": "app/auth/login-required/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/auth/github/page": "app/auth/github/page.js"
+  "/dashboard/page": "app/dashboard/page.js"
 }
