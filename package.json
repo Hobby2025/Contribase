@@ -1,6 +1,6 @@
 {
   "name": "contribase",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "![License](https://img.shields.io/badge/License-MIT-black)&nbsp;\r ![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=nextdotjs&logoColor=white)&nbsp;\r ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)&nbsp;\r ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white)&nbsp;",
   "main": "index.js",
   "scripts": {
