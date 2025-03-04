@@ -104,24 +104,67 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
-      <div className="mb-6 flex items-center">
-        <Link 
-          href="/dashboard" 
-          className="text-primary-600 hover:text-primary-700 mr-4"
-        >
-          ← 대시보드로 돌아가기
-        </Link>
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">
           {owner}/{repo} 분석 결과
         </h1>
+        <Link 
+          href="/dashboard" 
+          className="inline-flex items-center px-2 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
+        >
+          ← 돌아가기
+        </Link>
       </div>
 
       {isLoading ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500 mb-4"></div>
-            <p className="text-gray-600">저장소를 분석하는 중입니다. 잠시만 기다려주세요...</p>
-            <p className="text-sm text-gray-500 mt-2">이 과정은 커밋 수에 따라 몇 분이 소요될 수 있습니다.</p>
+          {/* 스켈레톤 UI */}
+          <div className="space-y-8">
+            {/* 요약 섹션 스켈레톤 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, index) => (
+                <div key={`summary-skeleton-${index}`} className="relative overflow-hidden bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                  <div className="absolute inset-0 skeleton-shine"></div>
+                  <div className="h-6 bg-gray-200 rounded-md w-1/2 mb-4"></div>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="h-4 bg-gray-200 rounded-md w-1/3 mb-2"></div>
+                      <div className="h-8 bg-gray-200 rounded-md w-1/4"></div>
+                    </div>
+                    <div>
+                      <div className="h-4 bg-gray-200 rounded-md w-2/5 mb-2"></div>
+                      <div className="flex space-x-2">
+                        <div className="h-6 bg-gray-200 rounded-full w-16"></div>
+                        <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 기회 목록 스켈레톤 */}
+            <div className="relative overflow-hidden bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+              <div className="absolute inset-0 skeleton-shine"></div>
+              <div className="h-6 bg-gray-200 rounded-md w-1/4 mb-6"></div>
+              
+              <div className="space-y-4">
+                {[...Array(5)].map((_, index) => (
+                  <div key={`opportunity-skeleton-${index}`} className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="h-6 bg-gray-200 rounded-md w-2/3"></div>
+                      <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                    </div>
+                    <div className="h-4 bg-gray-200 rounded-md w-full mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded-md w-5/6"></div>
+                    <div className="flex mt-4 space-x-2">
+                      <div className="h-8 bg-gray-200 rounded-full w-24"></div>
+                      <div className="h-8 bg-gray-200 rounded-full w-20"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       ) : error ? (
