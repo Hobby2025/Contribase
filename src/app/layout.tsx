@@ -10,7 +10,7 @@ import ScrollToTop from '@/components/ScrollToTop'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Contribase - AI 기반 GitHub 포트폴리오 생성기',
+  title: 'Contribase',
   description: 'GitHub 활동을 분석하여 전문적인 개발자 포트폴리오를 자동으로 생성합니다',
   icons: {
     icon: [
@@ -31,23 +31,23 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ko">
+    <html lang="en">
       <head>
         <link rel="icon" href="/icons/favicon.ico" sizes="any" />
         <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
         <link rel="manifest" href="/icons/site.webmanifest" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <ThemeProvider>
+        <ThemeProvider>
+          <AuthProvider>
             <div className="flex flex-col min-h-screen bg-primary-50">
               <Navbar />
               <main className="flex-grow pt-16">{children}</main>
               <Footer />
-              <ScrollToTop />
             </div>
-          </ThemeProvider>
-        </AuthProvider>
+            <ScrollToTop />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -1,6 +1,129 @@
+'use client';
+
 import Link from 'next/link'
+import Image from 'next/image'
+import { useState, useEffect } from 'react';
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFirstVisit, setIsFirstVisit] = useState(true);
+
+  useEffect(() => {
+    // 세션 스토리지를 통해 첫 방문 여부 확인
+    const visitStatus = sessionStorage.getItem('homeVisited');
+    if (visitStatus) {
+      setIsFirstVisit(false);
+      // 첫 방문이 아닌 경우, 캐시된 리소스를 사용할 가능성이 높으므로 즉시 로딩 상태 해제
+      setIsLoading(false);
+    } else {
+      // 첫 방문 표시
+      sessionStorage.setItem('homeVisited', 'true');
+    }
+
+    // 네트워크 요청 감지 및 이미지 로딩 상태 모니터링을 위한 변수
+    let loadComplete = false;
+    
+    // 페이지 로드 완료 감지
+    const handleLoad = () => {
+      loadComplete = true;
+      setIsLoading(false);
+    };
+
+    // 페이지가 이미 로드된 경우
+    if (document.readyState === 'complete') {
+      handleLoad();
+    } else {
+      window.addEventListener('load', handleLoad);
+    }
+
+    // 첫 방문이 아니거나 리소스가 이미 로드된 경우에는 로딩 상태 즉시 해제
+    const loadTimer = setTimeout(() => {
+      if (!loadComplete) {
+        setIsLoading(false);
+      }
+    }, 2000); // 최대 2초 대기
+
+    return () => {
+      window.removeEventListener('load', handleLoad);
+      clearTimeout(loadTimer);
+    };
+  }, []);
+
+  // 이미지 로드 완료 핸들러
+  const handleImageLoad = () => {
+    if (isFirstVisit) {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <>
+        {/* 스켈레톤 UI - Hero Section */}
+        <section className="bg-primary-700 text-primary-50">
+          <div className="container py-20 max-w-7xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6">
+                {/* 스켈레톤 제목 */}
+                <div className="h-14 bg-primary-600/50 rounded-lg w-3/4 animate-pulse"></div>
+                <div className="h-14 bg-primary-600/50 rounded-lg w-4/5 animate-pulse"></div>
+                
+                {/* 스켈레톤 설명 */}
+                <div className="h-8 bg-primary-600/50 rounded-lg w-full animate-pulse"></div>
+                
+                {/* 스켈레톤 버튼 */}
+                <div className="pt-4 flex flex-col sm:flex-row gap-4">
+                  <div className="h-14 bg-primary-600/50 rounded-lg w-32 animate-pulse"></div>
+                  <div className="h-14 bg-primary-600/50 rounded-lg w-40 animate-pulse"></div>
+                </div>
+              </div>
+              
+              {/* 스켈레톤 이미지 */}
+              <div className="hidden md:block">
+                <div className="w-full aspect-video rounded-lg bg-primary-600/50 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        {/* 스켈레톤 UI - Features Section */}
+        <section className="py-20 bg-primary-50">
+          <div className="container max-w-7xl mx-auto">
+            <div className="text-center mb-12">
+              <div className="h-10 bg-gray-200/60 rounded-lg w-64 mx-auto animate-pulse"></div>
+              <div className="h-6 bg-gray-200/60 rounded-lg w-96 mx-auto mt-4 animate-pulse"></div>
+              <div className="h-6 bg-gray-200/60 rounded-lg w-80 mx-auto mt-4 animate-pulse"></div>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-8">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="bg-white p-6 rounded-lg shadow-md">
+                  <div className="h-14 w-14 bg-gray-200/60 rounded-lg mb-4 animate-pulse"></div>
+                  <div className="h-6 bg-gray-200/60 rounded-lg w-3/4 mb-3 animate-pulse"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200/60 rounded-lg w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200/60 rounded-lg w-full animate-pulse"></div>
+                    <div className="h-4 bg-gray-200/60 rounded-lg w-3/4 animate-pulse"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 스켈레톤 UI - CTA Section */}
+        <section className="bg-primary-700 text-primary-50 py-16">
+          <div className="container max-w-4xl mx-auto text-center">
+            <div className="h-10 bg-primary-600/50 rounded-lg w-3/4 mx-auto animate-pulse mb-6"></div>
+            <div className="h-6 bg-primary-600/50 rounded-lg w-full mx-auto animate-pulse mb-4"></div>
+            <div className="h-6 bg-primary-600/50 rounded-lg w-5/6 mx-auto animate-pulse mb-8"></div>
+            <div className="h-14 bg-primary-600/50 rounded-lg w-60 mx-auto animate-pulse"></div>
+          </div>
+        </section>
+      </>
+    );
+  }
+
   return (
     <>
       {/* Hero Section */}
@@ -34,11 +157,17 @@ export default function Home() {
               </div>
             </div>
             <div className="hidden md:block">
-              <img 
-                src="/images/Contribase_main.webp" 
-                alt="GitHub 분석 이미지" 
-                className="w-full h-auto rounded-lg"
-              />
+              <div className="relative w-full h-auto aspect-video">
+                <Image 
+                  src="/images/Contribase_main.webp" 
+                  alt="GitHub 분석 이미지" 
+                  className="rounded-lg"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  priority
+                  onLoad={handleImageLoad}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -104,16 +233,20 @@ export default function Home() {
           <p className="text-xl mb-4 text-primary-100">
             전문적인 포트폴리오를 만들어 보세요.
           </p>
-          <Link
-            href="/auth/github"
-            className="text-primary-700 rounded-lg font-medium text-lg inline-flex items-center justify-center gap-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-primary-300"
-          >
-            <img 
-              src="/images/github_login.webp" 
-              alt="GitHub 로고" 
-              className="w-60 rounded-lg"
-            />
-          </Link>
+          <div className="relative w-60 h-14 mx-auto">
+            <Link
+              href="/auth/github"
+              className="inline-block w-full h-full"
+            >
+              <Image 
+                src="/images/github_login.webp" 
+                alt="GitHub 로고" 
+                fill
+                className="rounded-lg"
+                sizes="240px"
+              />
+            </Link>
+          </div>
         </div>
       </section>
     </>
