@@ -257,83 +257,65 @@ export default function Dashboard() {
       <div className="container max-w-6xl mx-auto px-4 py-8">
         {/* 스켈레톤 헤더 */}
         <div className="flex justify-between items-center mb-6">
-          <div className="h-10 w-52 bg-gray-200 rounded relative overflow-hidden">
-            <div className="absolute inset-0 skeleton-shine"></div>
-          </div>
-          <div className="h-10 w-32 bg-gray-200 rounded relative overflow-hidden">
-            <div className="absolute inset-0 skeleton-shine"></div>
-          </div>
+          <div className="h-10 w-52 bg-gray-200/60 rounded animate-pulse"></div>
+          <div className="h-10 w-32 bg-gray-200/60 rounded animate-pulse"></div>
         </div>
         
         {/* 스켈레톤 검색 필드 */}
         <div className="relative mb-4">
-          <div className="h-10 w-full bg-gray-200 rounded relative overflow-hidden">
-            <div className="absolute inset-0 skeleton-shine"></div>
-          </div>
+          <div className="h-10 w-full bg-gray-200/60 rounded animate-pulse"></div>
         </div>
         
         {/* 스켈레톤 드롭다운 */}
         <div className="mb-6">
-          <div className="h-10 w-full bg-gray-200 rounded relative overflow-hidden">
-            <div className="absolute inset-0 skeleton-shine"></div>
-          </div>
+          <div className="h-10 w-full bg-gray-200/60 rounded animate-pulse"></div>
         </div>
         
         {/* 스켈레톤 저장소 목록 */}
         <div className="min-h-[650px] flex flex-col">
-          <div className="grid gap-4 md:gap-6 sm:grid-cols-2 flex-1 min-h-[500px]">
-            {[...Array(4)].map((_, index) => (
+          <div className="grid gap-6 md:grid-cols-2 flex-1 min-h-[500px]">
+            {[...Array(6)].map((_, index) => (
               <div 
                 key={`skeleton-${index}`} 
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100 h-[200px] sm:h-[220px] flex flex-col relative overflow-hidden"
+                className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-sm transition-shadow"
               >
-                {/* 스켈레톤 배경 효과 */}
-                <div className="absolute inset-0 skeleton-shine"></div>
-                
-                <div className="flex items-start flex-1 overflow-hidden">
+                <div className="flex items-start">
                   <div className="mr-4 flex-shrink-0">
-                    <div className="rounded-full h-12 w-12 bg-gray-200"></div>
+                    <div className="rounded-full h-12 w-12 bg-gray-200/60 animate-pulse"></div>
                   </div>
                   <div className="min-w-0 flex-1 overflow-hidden">
-                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full mt-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-2/3 mt-1"></div>
-                    <div className="flex items-center mt-4">
-                      <div className="h-4 w-16 bg-gray-200 rounded mr-3"></div>
-                      <div className="h-4 w-12 bg-gray-200 rounded mr-3"></div>
-                      <div className="h-4 w-12 bg-gray-200 rounded"></div>
+                    <div className="h-5 bg-gray-200/60 rounded w-3/4 mb-2 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200/60 rounded w-full mt-2 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200/60 rounded w-2/3 mt-1 animate-pulse"></div>
+                    <div className="flex items-center mt-2">
+                      <div className="flex items-center mr-3">
+                        <div className="h-3 w-3 rounded-full bg-gray-200/60 mr-1.5 animate-pulse"></div>
+                        <div className="h-4 w-16 bg-gray-200/60 rounded animate-pulse"></div>
+                      </div>
+                      <div className="flex items-center mr-3">
+                        <div className="h-4 w-4 bg-gray-200/60 rounded mr-1.5 animate-pulse"></div>
+                        <div className="h-4 w-8 bg-gray-200/60 rounded animate-pulse"></div>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="h-4 w-4 bg-gray-200/60 rounded mr-1.5 animate-pulse"></div>
+                        <div className="h-4 w-8 bg-gray-200/60 rounded animate-pulse"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="mt-auto flex justify-end">
-                  <div className="h-8 w-20 bg-gray-200 rounded"></div>
+                <div className="mt-4 flex justify-end">
+                  <div className="h-8 w-20 bg-gray-200/60 rounded animate-pulse"></div>
                 </div>
               </div>
             ))}
           </div>
           
           {/* 스켈레톤 페이지네이션 */}
-          <div className="mt-auto pt-6 h-[100px]">
-            <div className="flex justify-center overflow-x-auto pb-2 max-w-full">
-              <div className="flex space-x-2 flex-wrap justify-center">
-                <div className="h-10 w-10 bg-gray-200 rounded relative overflow-hidden">
-                  <div className="absolute inset-0 skeleton-shine"></div>
-                </div>
-                <div className="h-10 w-10 bg-gray-200 rounded relative overflow-hidden">
-                  <div className="absolute inset-0 skeleton-shine"></div>
-                </div>
-                <div className="h-10 w-10 bg-gray-200 rounded relative overflow-hidden">
-                  <div className="absolute inset-0 skeleton-shine"></div>
-                </div>
-                <div className="h-10 w-10 bg-gray-200 rounded relative overflow-hidden">
-                  <div className="absolute inset-0 skeleton-shine"></div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 flex justify-center">
-              <div className="h-4 w-48 bg-gray-200 rounded relative overflow-hidden">
-                <div className="absolute inset-0 skeleton-shine"></div>
-              </div>
+          <div className="mt-6 flex justify-center">
+            <div className="flex gap-2">
+              {[...Array(5)].map((_, index) => (
+                <div key={`page-${index}`} className="w-10 h-10 bg-gray-200/60 rounded animate-pulse"></div>
+              ))}
             </div>
           </div>
         </div>
@@ -356,10 +338,7 @@ export default function Dashboard() {
         >
           {isAuthLoading ? (
             <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <div className="inline-flex h-4 w-4 mr-2 bg-gray-200 rounded-full animate-pulse"></div>
               인증 중...
             </>
           ) : (
@@ -466,59 +445,49 @@ export default function Dashboard() {
       {/* 저장소 목록 */}
       {isLoading ? (
         <div className="min-h-[650px] flex flex-col">
-          <div className="grid gap-4 md:gap-6 sm:grid-cols-2 flex-1 min-h-[500px]">
-            {[...Array(4)].map((_, index) => (
+          <div className="grid gap-6 md:grid-cols-2 flex-1 min-h-[500px]">
+            {[...Array(6)].map((_, index) => (
               <div 
                 key={`skeleton-${index}`} 
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100 h-[200px] sm:h-[220px] flex flex-col relative overflow-hidden"
+                className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-sm transition-shadow"
               >
-                {/* 스켈레톤 배경 효과 */}
-                <div className="absolute inset-0 skeleton-shine"></div>
-                
-                <div className="flex items-start flex-1 overflow-hidden">
+                <div className="flex items-start">
                   <div className="mr-4 flex-shrink-0">
-                    <div className="rounded-full h-12 w-12 bg-gray-200"></div>
+                    <div className="rounded-full h-12 w-12 bg-gray-200/60 animate-pulse"></div>
                   </div>
                   <div className="min-w-0 flex-1 overflow-hidden">
-                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full mt-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-2/3 mt-1"></div>
-                    <div className="flex items-center mt-4">
-                      <div className="h-4 w-16 bg-gray-200 rounded mr-3"></div>
-                      <div className="h-4 w-12 bg-gray-200 rounded mr-3"></div>
-                      <div className="h-4 w-12 bg-gray-200 rounded"></div>
+                    <div className="h-5 bg-gray-200/60 rounded w-3/4 mb-2 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200/60 rounded w-full mt-2 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200/60 rounded w-2/3 mt-1 animate-pulse"></div>
+                    <div className="flex items-center mt-2">
+                      <div className="flex items-center mr-3">
+                        <div className="h-3 w-3 rounded-full bg-gray-200/60 mr-1.5 animate-pulse"></div>
+                        <div className="h-4 w-16 bg-gray-200/60 rounded animate-pulse"></div>
+                      </div>
+                      <div className="flex items-center mr-3">
+                        <div className="h-4 w-4 bg-gray-200/60 rounded mr-1.5 animate-pulse"></div>
+                        <div className="h-4 w-8 bg-gray-200/60 rounded animate-pulse"></div>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="h-4 w-4 bg-gray-200/60 rounded mr-1.5 animate-pulse"></div>
+                        <div className="h-4 w-8 bg-gray-200/60 rounded animate-pulse"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="mt-auto flex justify-end">
-                  <div className="h-8 w-20 bg-gray-200 rounded"></div>
+                <div className="mt-4 flex justify-end">
+                  <div className="h-8 w-20 bg-gray-200/60 rounded animate-pulse"></div>
                 </div>
               </div>
             ))}
           </div>
           
           {/* 스켈레톤 페이지네이션 */}
-          <div className="mt-auto pt-6 h-[100px]">
-            <div className="flex justify-center overflow-x-auto pb-2 max-w-full">
-              <div className="flex space-x-2 flex-wrap justify-center">
-                <div className="h-10 w-10 bg-gray-200 rounded relative overflow-hidden">
-                  <div className="absolute inset-0 skeleton-shine"></div>
-                </div>
-                <div className="h-10 w-10 bg-gray-200 rounded relative overflow-hidden">
-                  <div className="absolute inset-0 skeleton-shine"></div>
-                </div>
-                <div className="h-10 w-10 bg-gray-200 rounded relative overflow-hidden">
-                  <div className="absolute inset-0 skeleton-shine"></div>
-                </div>
-                <div className="h-10 w-10 bg-gray-200 rounded relative overflow-hidden">
-                  <div className="absolute inset-0 skeleton-shine"></div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 flex justify-center">
-              <div className="h-4 w-48 bg-gray-200 rounded relative overflow-hidden">
-                <div className="absolute inset-0 skeleton-shine"></div>
-              </div>
+          <div className="mt-6 flex justify-center">
+            <div className="flex gap-2">
+              {[...Array(5)].map((_, index) => (
+                <div key={`page-${index}`} className="w-10 h-10 bg-gray-200/60 rounded animate-pulse"></div>
+              ))}
             </div>
           </div>
         </div>

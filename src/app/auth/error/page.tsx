@@ -78,19 +78,28 @@ function ErrorContent() {
 // 로딩 상태 컴포넌트
 function LoadingFallback() {
   return (
-    <div className="bg-white shadow-md rounded-lg max-w-md w-full p-8 text-center">
-      <div className="mb-6">
-        <svg className="mx-auto h-12 w-12 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
+    <div className="bg-white shadow-md rounded-lg max-w-md w-full p-8">
+      {/* 아이콘 스켈레톤 */}
+      <div className="flex justify-center mb-6">
+        <div className="h-12 w-12 rounded-full bg-gray-200/60 animate-pulse"></div>
       </div>
       
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">인증 오류</h1>
-      
+      {/* 제목 스켈레톤 */}
       <div className="flex justify-center mb-4">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500"></div>
+        <div className="h-8 w-40 bg-gray-200/60 rounded animate-pulse"></div>
       </div>
-      <p className="text-primary-600">로딩 중...</p>
+      
+      {/* 내용 스켈레톤 */}
+      <div className="space-y-3">
+        <div className="h-4 w-full bg-gray-200/60 rounded animate-pulse"></div>
+        <div className="h-4 w-4/5 mx-auto bg-gray-200/60 rounded animate-pulse"></div>
+        <div className="h-4 w-3/4 mx-auto bg-gray-200/60 rounded animate-pulse"></div>
+      </div>
+      
+      {/* 버튼 스켈레톤 */}
+      <div className="flex justify-center mt-6">
+        <div className="h-10 w-32 bg-gray-200/60 rounded animate-pulse"></div>
+      </div>
     </div>
   )
 }

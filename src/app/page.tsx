@@ -139,7 +139,10 @@ export default function Home() {
                 <span className="text-primary-300"> 자동 변환</span>
               </h1>
               <p className="text-xl md:text-2xl text-primary-100">
-                AI가 GitHub 기록을 분석하여 개발자의 기술 스택과 기여도를 시각화합니다.
+                AI가 GitHub 기록을 분석하여
+              </p>
+              <p className="text-xl md:text-2xl text-primary-100">
+                개발자의 기술 스택과 기여도를 시각화합니다.
               </p>
               <div className="pt-4 flex flex-col sm:flex-row gap-4">
                 <Link

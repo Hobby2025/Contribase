@@ -95,8 +95,131 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
   if (status === 'loading' || status === 'unauthenticated') {
     return (
       <div className="container max-w-6xl mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+        {/* 스켈레톤 헤더 */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="h-8 w-60 bg-gray-200/60 rounded animate-pulse"></div>
+          <div className="h-8 w-24 bg-gray-200/60 rounded animate-pulse"></div>
+        </div>
+
+        {/* 스켈레톤 UI - 분석 결과 */}
+        <div className="space-y-6">
+          {/* 분석 요약 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="h-20 bg-gray-200/60 rounded-md w-full animate-pulse"></div>
+          </div>
+
+          {/* 기술 스택 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="space-y-4">
+              {[...Array(5)].map((_, index) => (
+                <div key={`tech-${index}`} className="relative">
+                  <div className="flex justify-between mb-1">
+                    <div className="h-4 bg-gray-200/60 rounded w-1/5 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200/60 rounded w-12 animate-pulse"></div>
+                  </div>
+                  <div className="h-2.5 bg-gray-200/60 rounded-full w-full animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 프로젝트 특성 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, index) => (
+                <div key={`char-${index}`} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="h-4 bg-gray-200/60 rounded w-1/2 animate-pulse"></div>
+                    <div className="h-6 bg-gray-200/60 rounded w-12 animate-pulse"></div>
+                  </div>
+                  <div className="h-2 bg-gray-200/60 rounded-full w-full mb-2 animate-pulse"></div>
+                  <div className="h-12 bg-gray-200/60 rounded w-full animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 기여도 분석 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="space-y-3">
+              {[...Array(5)].map((_, index) => (
+                <div key={`contrib-${index}`} className="flex items-center">
+                  <div className="h-5 bg-gray-200/60 rounded-full w-16 mr-2 animate-pulse"></div>
+                  <div className="flex-1">
+                    <div className="h-2 bg-gray-200/60 rounded-full w-full animate-pulse"></div>
+                  </div>
+                  <div className="h-4 bg-gray-200/60 rounded w-10 ml-2 animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 주요 기능 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="space-y-4">
+              {[...Array(3)].map((_, index) => (
+                <div key={`feature-${index}`} className="border-l-4 border-primary-200 pl-4 py-2">
+                  <div className="h-5 bg-gray-200/60 rounded w-1/3 mb-2 animate-pulse"></div>
+                  <div className="h-12 bg-gray-200/60 rounded w-full animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 개발자 인사이트 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(6)].map((_, index) => (
+                <div key={`insight-${index}`} className="bg-blue-50/40 rounded-lg p-4 border border-blue-100/40">
+                  <div className="h-5 bg-gray-200/60 rounded w-1/2 mb-2 animate-pulse"></div>
+                  <div className="h-12 bg-gray-200/60 rounded w-full animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 맞춤형 추천 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="space-y-4">
+              {[...Array(3)].map((_, index) => (
+                <div key={`rec-${index}`} className="border rounded-lg p-4 border-gray-200/60">
+                  <div className="flex items-start">
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-200/60 mr-3 mt-0.5 animate-pulse"></span>
+                    <div>
+                      <div className="h-5 bg-gray-200/60 rounded w-1/2 mb-2 animate-pulse"></div>
+                      <div className="h-12 bg-gray-200/60 rounded w-full animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 코드 품질 점수 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="flex items-center">
+              <div className="w-24 h-24 rounded-full border-8 border-primary-100/40 mr-6 flex items-center justify-center">
+                <div className="h-10 w-10 bg-gray-200/60 rounded animate-pulse"></div>
+              </div>
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200/60 rounded w-1/3 mb-2 animate-pulse"></div>
+                <div className="h-3 bg-gray-200/60 rounded w-2/3 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* PDF 다운로드 버튼 스켈레톤 */}
+          <div className="flex justify-center">
+            <div className="h-10 w-40 bg-gray-200/60 rounded animate-pulse"></div>
+          </div>
         </div>
       </div>
     )
@@ -117,54 +240,123 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
       </div>
 
       {isLoading ? (
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          {/* 스켈레톤 UI */}
-          <div className="space-y-8">
-            {/* 요약 섹션 스켈레톤 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="space-y-6">
+          {/* 분석 요약 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="h-20 bg-gray-200/60 rounded-md w-full animate-pulse"></div>
+          </div>
+
+          {/* 기술 스택 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="space-y-4">
+              {[...Array(5)].map((_, index) => (
+                <div key={`tech-${index}`} className="relative">
+                  <div className="flex justify-between mb-1">
+                    <div className="h-4 bg-gray-200/60 rounded w-1/5 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200/60 rounded w-12 animate-pulse"></div>
+                  </div>
+                  <div className="h-2.5 bg-gray-200/60 rounded-full w-full animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 프로젝트 특성 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, index) => (
+                <div key={`char-${index}`} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="h-4 bg-gray-200/60 rounded w-1/2 animate-pulse"></div>
+                    <div className="h-6 bg-gray-200/60 rounded w-12 animate-pulse"></div>
+                  </div>
+                  <div className="h-2 bg-gray-200/60 rounded-full w-full mb-2 animate-pulse"></div>
+                  <div className="h-12 bg-gray-200/60 rounded w-full animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 기여도 분석 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="space-y-3">
+              {[...Array(5)].map((_, index) => (
+                <div key={`contrib-${index}`} className="flex items-center">
+                  <div className="h-5 bg-gray-200/60 rounded-full w-16 mr-2 animate-pulse"></div>
+                  <div className="flex-1">
+                    <div className="h-2 bg-gray-200/60 rounded-full w-full animate-pulse"></div>
+                  </div>
+                  <div className="h-4 bg-gray-200/60 rounded w-10 ml-2 animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 주요 기능 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="space-y-4">
               {[...Array(3)].map((_, index) => (
-                <div key={`summary-skeleton-${index}`} className="relative overflow-hidden bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                  <div className="absolute inset-0 skeleton-shine"></div>
-                  <div className="h-6 bg-gray-200 rounded-md w-1/2 mb-4"></div>
-                  <div className="space-y-4">
+                <div key={`feature-${index}`} className="border-l-4 border-primary-200 pl-4 py-2">
+                  <div className="h-5 bg-gray-200/60 rounded w-1/3 mb-2 animate-pulse"></div>
+                  <div className="h-12 bg-gray-200/60 rounded w-full animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 개발자 인사이트 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(6)].map((_, index) => (
+                <div key={`insight-${index}`} className="bg-blue-50/40 rounded-lg p-4 border border-blue-100/40">
+                  <div className="h-5 bg-gray-200/60 rounded w-1/2 mb-2 animate-pulse"></div>
+                  <div className="h-12 bg-gray-200/60 rounded w-full animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 맞춤형 추천 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="space-y-4">
+              {[...Array(3)].map((_, index) => (
+                <div key={`rec-${index}`} className="border rounded-lg p-4 border-gray-200/60">
+                  <div className="flex items-start">
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-200/60 mr-3 mt-0.5 animate-pulse"></span>
                     <div>
-                      <div className="h-4 bg-gray-200 rounded-md w-1/3 mb-2"></div>
-                      <div className="h-8 bg-gray-200 rounded-md w-1/4"></div>
-                    </div>
-                    <div>
-                      <div className="h-4 bg-gray-200 rounded-md w-2/5 mb-2"></div>
-                      <div className="flex space-x-2">
-                        <div className="h-6 bg-gray-200 rounded-full w-16"></div>
-                        <div className="h-6 bg-gray-200 rounded-full w-20"></div>
-                      </div>
+                      <div className="h-5 bg-gray-200/60 rounded w-1/2 mb-2 animate-pulse"></div>
+                      <div className="h-12 bg-gray-200/60 rounded w-full animate-pulse"></div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* 기회 목록 스켈레톤 */}
-            <div className="relative overflow-hidden bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-              <div className="absolute inset-0 skeleton-shine"></div>
-              <div className="h-6 bg-gray-200 rounded-md w-1/4 mb-6"></div>
-              
-              <div className="space-y-4">
-                {[...Array(5)].map((_, index) => (
-                  <div key={`opportunity-skeleton-${index}`} className="p-4 border border-gray-200 rounded-lg">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="h-6 bg-gray-200 rounded-md w-2/3"></div>
-                      <div className="h-6 bg-gray-200 rounded-full w-20"></div>
-                    </div>
-                    <div className="h-4 bg-gray-200 rounded-md w-full mb-3"></div>
-                    <div className="h-4 bg-gray-200 rounded-md w-5/6"></div>
-                    <div className="flex mt-4 space-x-2">
-                      <div className="h-8 bg-gray-200 rounded-full w-24"></div>
-                      <div className="h-8 bg-gray-200 rounded-full w-20"></div>
-                    </div>
-                  </div>
-                ))}
+          {/* 코드 품질 점수 스켈레톤 */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="h-6 bg-gray-200/60 rounded-md w-1/4 mb-4 animate-pulse"></div>
+            <div className="flex items-center">
+              <div className="w-24 h-24 rounded-full border-8 border-primary-100/40 mr-6 flex items-center justify-center">
+                <div className="h-10 w-10 bg-gray-200/60 rounded animate-pulse"></div>
+              </div>
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200/60 rounded w-1/3 mb-2 animate-pulse"></div>
+                <div className="h-3 bg-gray-200/60 rounded w-2/3 animate-pulse"></div>
               </div>
             </div>
+          </div>
+
+          {/* PDF 다운로드 버튼 스켈레톤 */}
+          <div className="flex justify-center">
+            <div className="h-10 w-40 bg-gray-200/60 rounded animate-pulse"></div>
           </div>
         </div>
       ) : error ? (

@@ -1,13 +1,10 @@
 import '@/styles/globals.css'
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import AuthProvider from '@/components/AuthProvider'
 import ThemeProvider from '@/components/ThemeProvider'
 import ScrollToTop from '@/components/ScrollToTop'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Contribase',
@@ -23,6 +20,27 @@ export const metadata: Metadata = {
       { url: '/icons/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
   },
+  openGraph: {
+    title: 'Contribase',
+    description: 'GitHub 활동을 분석하여 개발자 포트폴리오를 자동으로 생성합니다',
+    images: [
+      {
+        url: '/images/Contribase_main.webp',
+        width: 1200,
+        height: 630,
+        alt: 'Contribase - 개발자 포트폴리오 생성 서비스'
+      }
+    ],
+    locale: 'ko_KR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Contribase',
+    description: 'GitHub 활동을 분석하여 개발자 포트폴리오를 자동으로 생성합니다',
+    images: ['/images/Contribase_main.webp'],
+    creator: '@contribase'
+  }
 }
 
 export default function RootLayout({
@@ -37,7 +55,7 @@ export default function RootLayout({
         <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
         <link rel="manifest" href="/icons/site.webmanifest" />
       </head>
-      <body className={inter.className}>
+      <body>
         <ThemeProvider>
           <AuthProvider>
             <div className="flex flex-col min-h-screen bg-primary-50">
