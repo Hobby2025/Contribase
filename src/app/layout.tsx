@@ -40,7 +40,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <ThemeProvider>
-            <div className="flex flex-col min-h-screen dark:bg-gray-900 dark:text-white">
+            <div className="flex flex-col min-h-screen bg-primary-50">
               <Navbar />
               <main className="flex-grow pt-16">{children}</main>
               <Footer />

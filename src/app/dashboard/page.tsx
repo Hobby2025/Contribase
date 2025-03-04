@@ -41,6 +41,31 @@ export default function Dashboard() {
   const [isAuthThrottled, setIsAuthThrottled] = useState(false)
   const [throttleTimeRemaining, setThrottleTimeRemaining] = useState(0)
   const MIN_AUTH_INTERVAL = 60 // 초 단위 (1분)
+  const [isAuthLoading, setIsAuthLoading] = useState(false) // 로딩 상태 추가
+  const [reloadKey, setReloadKey] = useState(0) // 저장소 목록 새로고침을 위한 키
+  
+  // URL 파라미터 확인
+  useEffect(() => {
+    // 브라우저에서만 실행
+    if (typeof window === 'undefined') return;
+
+    // URL에서 파라미터 확인
+    const urlParams = new URLSearchParams(window.location.search);
+    const requireOrgAccess = urlParams.get('requireOrgAccess');
+    const timestamp = urlParams.get('t');
+
+    // 조직 권한이 새로 추가되었거나 타임스탬프가 있는 경우 데이터 다시 로드
+    if (requireOrgAccess === 'true' || timestamp) {
+      console.log('조직 권한이 새로 추가되었거나 타임스탬프가 있습니다. 데이터를 다시 로드합니다.');
+      
+      // 저장소 목록 새로고침 트리거
+      setReloadKey(prev => prev + 1);
+      
+      // URL에서 파라미터 제거 (페이지 새로고침 시 중복 로드 방지)
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, []);
   
   // 인증 상태 확인
   useEffect(() => {
@@ -52,6 +77,9 @@ export default function Dashboard() {
   // 조직 접근 권한 요청 함수
   const requestOrgAccess = () => {
     console.log('조직 추가하기 버튼 클릭됨');
+    
+    // 이미 로딩 중이면 중복 요청 방지
+    if (isAuthLoading) return;
     
     // 쓰로틀링 체크: 마지막 인증 요청 시간 확인
     if (typeof window !== 'undefined') {
@@ -87,12 +115,25 @@ export default function Dashboard() {
       localStorage.setItem('lastAuthRequestTime', currentTime.toString())
     }
     
-    // NextAuth의 signIn 함수 사용
-    signIn('github', {
-      callbackUrl: '/dashboard',
-      // 조직 접근 권한이 포함된 스코프 지정
-      scope: 'read:user user:email repo read:org admin:org'
-    });
+    // 로딩 상태 활성화
+    setIsAuthLoading(true);
+    
+    // 추가 권한이 필요함을 표시하는 URL 파라미터
+    const callbackUrlWithParams = `/dashboard?t=${Date.now()}&requireOrgAccess=true`;
+    
+    // GitHub 인증 페이지로 강제 리다이렉트
+    // prompt=consent를 사용하여 항상 권한 확인 화면 표시
+    window.location.href = `https://github.com/login/oauth/authorize?` +
+      `client_id=${process.env.NEXT_PUBLIC_GITHUB_ID}` +
+      `&redirect_uri=${encodeURIComponent(`${window.location.origin}/api/auth/callback/github`)}` +
+      `&scope=read:user user:email repo read:org admin:org` +
+      `&prompt=consent` +
+      `&state=${encodeURIComponent(JSON.stringify({ callbackUrl: callbackUrlWithParams }))}`;
+    
+    // 10초 후 로딩 상태 자동 해제 (페이지 이동이 안 된 경우)
+    setTimeout(() => {
+      setIsAuthLoading(false);
+    }, 10000);
   }
 
   // 저장소 목록 가져오기
@@ -121,19 +162,58 @@ export default function Dashboard() {
         
         setOrganizations(orgNames);
         
-        console.log('저장소 목록:', uniqueRepos.length, '개');
-        console.log('조직 목록:', orgNames);
+        // 조직/저장소가 로드되었음을 알림
+        console.log(`조직 ${orgNames.length}개, 저장소 ${uniqueRepos.length}개 로드 완료`);
         
-      } catch (error) {
-        console.error('저장소 목록 가져오기 오류:', error)
+        setIsLoading(false)
+      } catch (err) {
+        console.error('저장소 목록 로드 오류:', err)
         setError('저장소 목록을 가져오는 중 오류가 발생했습니다.')
-      } finally {
         setIsLoading(false)
       }
     }
-
+    
     fetchRepositories()
-  }, [status, session, router])
+  }, [status, session, reloadKey])
+
+  // 세션이 변경될 때마다 URL 해시 확인하여 콜백 상태 감지
+  useEffect(() => {
+    // URL 해시가 존재하고 인증이 완료된 상태라면 저장소 목록 새로고침
+    if (typeof window !== 'undefined' && window.location.hash && status === 'authenticated') {
+      console.log('콜백 상태 감지: 저장소 목록 새로고침')
+      
+      // URL 해시 제거
+      window.history.replaceState(
+        null, 
+        document.title, 
+        window.location.pathname + window.location.search
+      )
+      
+      // 약간의 지연 후 저장소 목록 다시 가져오기
+      setTimeout(() => {
+        getUserRepositories(session!.accessToken as string)
+          .then(repos => {
+            // 중복된 저장소 제거 (ID 기준)
+            const uniqueRepos = Array.from(
+              new Map(repos.map(repo => [repo.id, repo])).values()
+            );
+            
+            setRepositories(uniqueRepos)
+            
+            // 조직 목록 업데이트
+            const orgNames = uniqueRepos
+              .filter(repo => repo.owner.login !== session!.user?.name)
+              .map(repo => repo.owner.login)
+              .filter((value, index, self) => self.indexOf(value) === index);
+            
+            setOrganizations(orgNames);
+          })
+          .catch(error => {
+            console.error('콜백 후 저장소 목록 가져오기 오류:', error)
+          })
+      }, 500)
+    }
+  }, [status, session])
 
   // 저장소 분석하기
   const analyzeRepository = (owner: string, repo: string) => {
@@ -188,19 +268,31 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold">GitHub 저장소</h1>
         <button 
           onClick={requestOrgAccess}
-          disabled={isAuthThrottled} 
+          disabled={isAuthThrottled || isAuthLoading} 
           className={`flex items-center justify-center gap-2 px-4 py-2 mt-4 text-sm font-medium rounded-md ${
-            isAuthThrottled 
+            isAuthThrottled || isAuthLoading
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
               : 'bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500'
           }`}
         >
-          <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          {isAuthThrottled 
-            ? `${throttleTimeRemaining}초 후 시도하세요` 
-            : '조직 추가하기'}
+          {isAuthLoading ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              인증 중...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              {isAuthThrottled 
+                ? `${throttleTimeRemaining}초 후 시도하세요` 
+                : '조직 추가하기'}
+            </>
+          )}
         </button>
       </div>
       

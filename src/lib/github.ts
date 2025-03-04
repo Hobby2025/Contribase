@@ -72,37 +72,101 @@ export async function getUserProfile(accessToken: string) {
   }>(accessToken, '/user')
 }
 
-// 사용자 저장소 목록 가져오기
-export async function getUserRepositories(accessToken: string): Promise<Repository[]> {
-  // 개인 저장소 가져오기
-  const userRepos = await fetchGitHubAPI<Repository[]>(
-    accessToken,
-    '/user/repos?sort=updated&per_page=100'
-  );
-  
+// GitHub 조직 인터페이스
+interface GitHubOrg {
+  login: string;
+  id: number;
+  url: string;
+  repos_url: string;
+  events_url: string;
+  hooks_url: string;
+  issues_url: string;
+  members_url: string;
+  public_members_url: string;
+  avatar_url: string;
+  description: string;
+}
+
+/**
+ * 사용자의 GitHub 저장소 목록을 가져옵니다.
+ * 조직 저장소 권한이 있다면 조직 저장소도 함께 가져옵니다.
+ */
+export async function getUserRepositories(accessToken: string): Promise<any[]> {
   try {
-    // 사용자가 속한 조직 목록 가져오기
-    const orgs = await getUserOrganizations(accessToken);
+    console.log('GitHub API 호출: 저장소 목록 가져오기')
     
-    // 각 조직의 저장소 가져오기
-    const orgReposPromises = orgs.map(org => 
-      getOrganizationRepositories(accessToken, org.login)
-    );
+    // 1. 사용자 저장소 가져오기
+    const userReposResponse = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.github.v3+json'
+      },
+    })
     
-    // 모든 조직 저장소 결과 기다리기
-    const orgReposResults = await Promise.allSettled(orgReposPromises);
+    if (!userReposResponse.ok) {
+      console.error('GitHub API 오류 (사용자 저장소):', userReposResponse.status)
+      throw new Error(`GitHub API 요청 실패: ${userReposResponse.status}`)
+    }
     
-    // 성공적으로 가져온 조직 저장소만 필터링
-    const orgRepos = orgReposResults
-      .filter((result): result is PromiseFulfilledResult<Repository[]> => result.status === 'fulfilled')
-      .flatMap(result => result.value);
+    const userRepos = await userReposResponse.json()
+    console.log(`사용자 저장소 ${userRepos.length}개 로드됨`)
     
-    // 개인 저장소와 조직 저장소 합치기
-    return [...userRepos, ...orgRepos];
+    // 2. 사용자가 속한 조직 목록 가져오기 (권한이 있는 경우)
+    let orgRepos: any[] = []
+    try {
+      const orgsResponse = await fetch('https://api.github.com/user/orgs', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/vnd.github.v3+json'
+        },
+      })
+      
+      if (orgsResponse.ok) {
+        const orgs: GitHubOrg[] = await orgsResponse.json()
+        console.log(`조직 ${orgs.length}개 로드됨`)
+        
+        // 조직이 있을 경우 각 조직의 저장소 가져오기
+        if (orgs.length > 0) {
+          const orgReposPromises = orgs.map(async (org: GitHubOrg) => {
+            try {
+              const orgReposResponse = await fetch(
+                `https://api.github.com/orgs/${org.login}/repos?per_page=100&sort=updated`, 
+                {
+                  headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                  },
+                }
+              )
+              
+              if (orgReposResponse.ok) {
+                return await orgReposResponse.json()
+              }
+              return []
+            } catch (err) {
+              console.error(`조직 ${org.login} 저장소 가져오기 오류:`, err)
+              return []
+            }
+          })
+          
+          const orgReposArray = await Promise.all(orgReposPromises)
+          orgRepos = orgReposArray.flat()
+          console.log(`조직 저장소 ${orgRepos.length}개 로드됨`)
+        }
+      }
+    } catch (err) {
+      console.error('조직 정보 가져오기 오류:', err)
+      // 조직 정보를 가져오는데 실패해도 사용자 저장소는 계속 사용
+    }
+    
+    // 사용자 저장소와 조직 저장소 합치기
+    const allRepos = [...userRepos, ...orgRepos]
+    console.log(`총 ${allRepos.length}개 저장소 로드 완료`)
+    
+    return allRepos
   } catch (error) {
-    console.error('조직 저장소 가져오기 오류:', error);
-    // 오류 발생 시 개인 저장소만 반환
-    return userRepos;
+    console.error('저장소 목록 가져오기 오류:', error)
+    throw error
   }
 }
 
@@ -122,17 +186,27 @@ export async function getOrganizationRepositories(accessToken: string, org: stri
   );
 }
 
-// 특정 저장소의 커밋 목록 가져오기
-export async function getRepositoryCommits(
-  accessToken: string,
-  owner: string,
-  repo: string,
-  per_page: number = 100
-): Promise<Commit[]> {
-  return fetchGitHubAPI<Commit[]>(
-    accessToken,
-    `/repos/${owner}/${repo}/commits?per_page=${per_page}`
-  )
+/**
+ * 저장소 커밋 기록을 가져옵니다.
+ */
+export async function getRepositoryCommits(accessToken: string, owner: string, repo: string): Promise<any[]> {
+  try {
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=100`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.github.v3+json'
+      },
+    })
+    
+    if (!response.ok) {
+      throw new Error(`GitHub API 요청 실패: ${response.status}`)
+    }
+    
+    return await response.json()
+  } catch (error) {
+    console.error('커밋 기록 가져오기 오류:', error)
+    throw error
+  }
 }
 
 // 특정 저장소의 언어 통계 가져오기
@@ -186,4 +260,27 @@ export async function getRepositoryDetails(
     accessToken,
     `/repos/${owner}/${repo}`
   )
+}
+
+/**
+ * 저장소 컨트리뷰터 정보를 가져옵니다.
+ */
+export async function getRepositoryContributors(accessToken: string, owner: string, repo: string): Promise<any[]> {
+  try {
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/stats/contributors`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.github.v3+json'
+      },
+    })
+    
+    if (!response.ok) {
+      throw new Error(`GitHub API 요청 실패: ${response.status}`)
+    }
+    
+    return await response.json()
+  } catch (error) {
+    console.error('컨트리뷰터 정보 가져오기 오류:', error)
+    throw error
+  }
 } 

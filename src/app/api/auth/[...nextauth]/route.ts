@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth'
 import GithubProvider from 'next-auth/providers/github'
+import { OAuthConfig } from 'next-auth/providers'
 
 // 환경에 따른 URL 설정
 const baseUrl = process.env.VERCEL_URL 
@@ -13,12 +14,11 @@ const handler = NextAuth({
       clientSecret: process.env.GITHUB_SECRET || '',
       // 동적으로 scope를 처리할 수 있도록 설정
       authorization: {
+        url: "https://github.com/login/oauth/authorize",
         params: {
           // 기본 스코프는 사용자 정보와 이메일, 저장소 읽기 권한만 포함
-          scope: 'read:user user:email repo',
-          // 항상 권한 동의 화면이 표시되도록 설정
-          prompt: 'consent'
-        },
+          scope: 'read:user user:email repo'
+        }
       },
     }),
   ],
@@ -34,6 +34,34 @@ const handler = NextAuth({
       // 세션에 액세스 토큰 추가
       session.accessToken = token.accessToken
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // state 매개변수에서 callbackUrl 추출 시도
+      try {
+        const urlObj = new URL(url);
+        const state = urlObj.searchParams.get('state');
+        
+        if (state) {
+          try {
+            const stateObj = JSON.parse(decodeURIComponent(state));
+            if (stateObj.callbackUrl) {
+              return `${baseUrl}${stateObj.callbackUrl}`;
+            }
+          } catch (e) {
+            console.error('state 파싱 오류:', e);
+          }
+        }
+      } catch (e) {
+        console.error('URL 파싱 오류:', e);
+      }
+      
+      // 기타 경우, URL이 baseUrl로 시작하면 그대로 사용
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+      
+      // GitHub 인증 후 항상 대시보드로 리다이렉트
+      return `${baseUrl}/dashboard?t=${Date.now()}`;
     },
   },
   pages: {
