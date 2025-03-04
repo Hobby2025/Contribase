@@ -1,5 +1,11 @@
+// package.json에서 버전 정보 가져오기
+const packageJson = require('./package.json')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    APP_VERSION: packageJson.version,
+  },
   reactStrictMode: true,
   images: {
     remotePatterns: [

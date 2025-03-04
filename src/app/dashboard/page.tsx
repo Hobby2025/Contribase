@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession, signIn, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -31,6 +31,16 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [activeTab, setActiveTab] = useState<string>('all')
+  const [organizations, setOrganizations] = useState<string[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const reposPerPage = 6
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  
+  // 인증 요청 쓰로틀링을 위한 상태
+  const [isAuthThrottled, setIsAuthThrottled] = useState(false)
+  const [throttleTimeRemaining, setThrottleTimeRemaining] = useState(0)
+  const MIN_AUTH_INTERVAL = 60 // 초 단위 (1분)
   
   // 인증 상태 확인
   useEffect(() => {
@@ -38,6 +48,52 @@ export default function Dashboard() {
       router.push('/auth/login-required')
     }
   }, [status, router])
+
+  // 조직 접근 권한 요청 함수
+  const requestOrgAccess = () => {
+    console.log('조직 추가하기 버튼 클릭됨');
+    
+    // 쓰로틀링 체크: 마지막 인증 요청 시간 확인
+    if (typeof window !== 'undefined') {
+      const lastAuthTime = localStorage.getItem('lastAuthRequestTime')
+      const currentTime = Math.floor(Date.now() / 1000) // 현재 시간(초)
+      
+      if (lastAuthTime) {
+        const timeSinceLastAuth = currentTime - parseInt(lastAuthTime)
+        
+        // 마지막 인증 요청 후 MIN_AUTH_INTERVAL초가 지나지 않았으면 요청 차단
+        if (timeSinceLastAuth < MIN_AUTH_INTERVAL) {
+          setIsAuthThrottled(true)
+          const remaining = MIN_AUTH_INTERVAL - timeSinceLastAuth
+          setThrottleTimeRemaining(remaining)
+          
+          // 남은 시간 카운트다운
+          const countdownInterval = setInterval(() => {
+            setThrottleTimeRemaining(prev => {
+              if (prev <= 1) {
+                clearInterval(countdownInterval)
+                setIsAuthThrottled(false)
+                return 0
+              }
+              return prev - 1
+            })
+          }, 1000)
+          
+          return
+        }
+      }
+      
+      // 현재 시간 저장
+      localStorage.setItem('lastAuthRequestTime', currentTime.toString())
+    }
+    
+    // NextAuth의 signIn 함수 사용
+    signIn('github', {
+      callbackUrl: '/dashboard',
+      // 조직 접근 권한이 포함된 스코프 지정
+      scope: 'read:user user:email repo read:org admin:org'
+    });
+  }
 
   // 저장소 목록 가져오기
   useEffect(() => {
@@ -48,31 +104,72 @@ export default function Dashboard() {
       
       try {
         setIsLoading(true)
-        setError(null)
-        
         const repos = await getUserRepositories(session.accessToken)
-        setRepositories(repos)
-        setIsLoading(false)
-      } catch (err) {
-        console.error('저장소 로딩 오류:', err)
-        setError('GitHub 저장소를 가져오는 데 문제가 발생했습니다. GitHub 토큰이 유효한지 확인하세요.')
+        
+        // 중복된 저장소 제거 (ID 기준)
+        const uniqueRepos = Array.from(
+          new Map(repos.map(repo => [repo.id, repo])).values()
+        );
+        
+        setRepositories(uniqueRepos)
+        
+        // 조직 목록 추출
+        const orgNames = uniqueRepos
+          .filter(repo => repo.owner.login !== session.user?.name)
+          .map(repo => repo.owner.login)
+          .filter((value, index, self) => self.indexOf(value) === index);
+        
+        setOrganizations(orgNames);
+        
+        console.log('저장소 목록:', uniqueRepos.length, '개');
+        console.log('조직 목록:', orgNames);
+        
+      } catch (error) {
+        console.error('저장소 목록 가져오기 오류:', error)
+        setError('저장소 목록을 가져오는 중 오류가 발생했습니다.')
+      } finally {
         setIsLoading(false)
       }
     }
-    
+
     fetchRepositories()
-  }, [status, session])
+  }, [status, session, router])
 
   // 저장소 분석하기
   const analyzeRepository = (owner: string, repo: string) => {
     router.push(`/dashboard/analysis/${owner}/${repo}`)
   }
 
-  // 검색 필터
-  const filteredRepositories = repositories.filter((repo) => 
-    repo.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    repo.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // 검색 필터 및 탭 필터
+  const filteredRepositories = repositories.filter((repo) => {
+    // 검색어 필터링
+    const matchesSearch = 
+      repo.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      repo.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // 탭 필터링
+    if (activeTab === 'all') return matchesSearch;
+    if (activeTab !== 'all') {
+      // 특정 조직의 저장소 필터링
+      return matchesSearch && repo.owner.login === activeTab;
+    }
+    
+    return matchesSearch;
+  });
+
+  // 페이지네이션 계산
+  const indexOfLastRepo = currentPage * reposPerPage;
+  const indexOfFirstRepo = indexOfLastRepo - reposPerPage;
+  const currentRepos = filteredRepositories.slice(indexOfFirstRepo, indexOfLastRepo);
+  const totalPages = Math.ceil(filteredRepositories.length / reposPerPage);
+
+  // 페이지 변경 함수
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  // 탭 변경 시 페이지 초기화
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchTerm]);
 
   // 로딩 중이거나 인증되지 않은 경우 로딩 표시
   if (status === 'loading' || status === 'unauthenticated') {
@@ -87,131 +184,280 @@ export default function Dashboard() {
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">GitHub 저장소</h1>
-        
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">GitHub 저장소</h1>
+        <button 
+          onClick={requestOrgAccess}
+          disabled={isAuthThrottled} 
+          className={`flex items-center justify-center gap-2 px-4 py-2 mt-4 text-sm font-medium rounded-md ${
+            isAuthThrottled 
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+              : 'bg-primary-500 text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500'
+          }`}
+        >
+          <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          {isAuthThrottled 
+            ? `${throttleTimeRemaining}초 후 시도하세요` 
+            : '조직 추가하기'}
+        </button>
+      </div>
+      
+      {/* 검색 입력 필드 */}
+      <div className="relative mb-4">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <input
+          type="text"
+          placeholder="저장소 검색..."
+          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {/* 카테고리 아코디언 */}
+      <div className="mb-6">
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="w-full flex justify-between items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <span>{activeTab === 'all' ? '모든 저장소' : `${activeTab} 저장소`}</span>
+            <svg 
+              className={`ml-2 h-5 w-5 text-gray-400 transition-transform ${isDropdownOpen ? 'transform rotate-180' : ''}`} 
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 20 20" 
+              fill="currentColor"
+            >
+              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
-          </div>
-          <input
-            type="text"
-            placeholder="저장소 검색..."
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          </button>
+          
+          {isDropdownOpen && (
+            <div className="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg">
+              <div className="py-1">
+                <button
+                  onClick={() => {
+                    setActiveTab('all')
+                    setIsDropdownOpen(false)
+                  }}
+                  className={`block w-full text-left px-4 py-2 text-sm ${
+                    activeTab === 'all'
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  모든 저장소
+                </button>
+                {organizations.map(org => (
+                  <button
+                    key={org}
+                    onClick={() => {
+                      setActiveTab(org)
+                      setIsDropdownOpen(false)
+                    }}
+                    className={`block w-full text-left px-4 py-2 text-sm ${
+                      activeTab === org
+                        ? 'bg-primary-50 text-primary-600'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {org} 저장소
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* 에러 메시지 */}
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 저장소 목록 */}
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
         </div>
-      ) : error ? (
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
-          >
-            다시 시도
-          </button>
-        </div>
       ) : filteredRepositories.length === 0 ? (
-        <div className="bg-white shadow-sm rounded-lg p-6 text-center">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+          <svg className="h-12 w-12 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
           </svg>
-          <h3 className="mt-2 text-lg font-medium text-gray-900">저장소를 찾을 수 없습니다</h3>
-          <p className="mt-1 text-sm text-gray-500">검색어를 변경하거나 GitHub에서 새 저장소를 생성하세요.</p>
+          <p className="text-lg">표시할 저장소가 없습니다</p>
+          {activeTab !== 'all' && (
+            <p className="mt-2 text-sm">{activeTab} 조직에 저장소가 없거나 접근 권한이 없습니다.</p>
+          )}
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          {filteredRepositories.map((repo) => (
-            <div 
-              key={repo.id} 
-              className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start">
-                <div className="mr-4 flex-shrink-0">
-                  <Image
-                    src={repo.owner.avatar_url}
-                    alt={repo.owner.login}
-                    width={48}
-                    height={48}
-                    className="rounded-full"
-                  />
+        <>
+          <div className="grid gap-6 md:grid-cols-2">
+            {currentRepos.map((repo) => (
+              <div 
+                key={`${repo.owner.login}-${repo.name}`} 
+                className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start">
+                  <div className="mr-4 flex-shrink-0">
+                    <Image
+                      src={repo.owner.avatar_url}
+                      alt={repo.owner.login}
+                      width={48}
+                      height={48}
+                      className="rounded-full"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg font-medium text-gray-900 truncate">
+                      <Link 
+                        href={repo.html_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                      >
+                        {repo.owner.login === session?.user?.name ? (
+                          <span>내 저장소 / {repo.name}</span>
+                        ) : (
+                          <span>{repo.full_name}</span>
+                        )}
+                      </Link>
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                      {repo.description || '설명 없음'}
+                    </p>
+                    <div className="mt-2 flex items-center text-sm text-gray-500">
+                      {repo.language && (
+                        <span className="mr-3 flex items-center">
+                          <span className="mr-1.5 h-3 w-3 rounded-full" style={{ backgroundColor: getLanguageColor(repo.language) }}></span>
+                          {repo.language}
+                        </span>
+                      )}
+                      <span className="mr-3 flex items-center">
+                        <svg className="mr-1.5 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        {repo.stargazers_count}
+                      </span>
+                      <span className="flex items-center">
+                        <svg className="mr-1.5 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        {repo.forks_count}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-lg font-medium text-gray-900 truncate">
-                    <Link 
-                      href={repo.html_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="hover:text-primary-600"
-                    >
-                      {repo.name}
-                    </Link>
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {repo.owner.login} • 최종 업데이트: {new Date(repo.updated_at).toLocaleDateString()}
-                  </p>
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => analyzeRepository(repo.owner.login, repo.name)}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
+                  >
+                    분석하기
+                  </button>
                 </div>
               </div>
-              
-              <p className="mt-3 text-sm text-gray-600 line-clamp-2">
-                {repo.description || '설명 없음'}
-              </p>
-              
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex space-x-4 text-sm text-gray-500">
-                  {repo.language && (
-                    <div className="flex items-center">
-                      <span className="relative inline-block h-3 w-3 mr-1 rounded-full bg-primary-500" />
-                      <span>{repo.language}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center">
-                    <svg className="h-4 w-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                    </svg>
-                    <span>{repo.stargazers_count}</span>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <svg className="h-4 w-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M3.5 3.25a.75.75 0 011.5 0v8.94l1.72-1.72a.75.75 0 111.06 1.06l-3 3a.75.75 0 01-1.06 0l-3-3a.75.75 0 111.06-1.06l1.72 1.72V3.25zm7.5 5a.75.75 0 01.75-.75h3.5a.75.75 0 110 1.5h-3.5a.75.75 0 01-.75-.75zM8.75 12a.75.75 0 000 1.5h9.5a.75.75 0 000-1.5h-9.5zm-5 5.5a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H4.5a.75.75 0 01-.75-.75z" />
-                    </svg>
-                    <span>{repo.forks_count}</span>
-                  </div>
-                </div>
+            ))}
+          </div>
+          
+          {/* 페이지네이션 */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-8">
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <button
+                  onClick={() => paginate(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                    currentPage === 1 
+                      ? 'text-gray-300 cursor-not-allowed' 
+                      : 'text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="sr-only">이전</span>
+                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                  <button
+                    key={number}
+                    onClick={() => paginate(number)}
+                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                      currentPage === number
+                        ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    {number}
+                  </button>
+                ))}
                 
                 <button
-                  onClick={() => analyzeRepository(repo.owner.login, repo.name)}
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                    currentPage === totalPages 
+                      ? 'text-gray-300 cursor-not-allowed' 
+                      : 'text-gray-500 hover:bg-gray-50'
+                  }`}
                 >
-                  분석하기
+                  <span className="sr-only">다음</span>
+                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
                 </button>
-              </div>
+              </nav>
             </div>
-          ))}
-        </div>
+          )}
+          
+          {/* 결과 요약 */}
+          <div className="mt-4 text-sm text-gray-500 text-center">
+            전체 {filteredRepositories.length}개 중 {indexOfFirstRepo + 1}-{Math.min(indexOfLastRepo, filteredRepositories.length)}개 표시
+          </div>
+        </>
       )}
     </div>
   )
+}
+
+// 언어별 색상 매핑
+function getLanguageColor(language: string): string {
+  const colors: Record<string, string> = {
+    JavaScript: '#f1e05a',
+    TypeScript: '#2b7489',
+    HTML: '#e34c26',
+    CSS: '#563d7c',
+    Python: '#3572A5',
+    Java: '#b07219',
+    C: '#555555',
+    'C++': '#f34b7d',
+    'C#': '#178600',
+    Ruby: '#701516',
+    Go: '#00ADD8',
+    PHP: '#4F5D95',
+    Swift: '#ffac45',
+    Kotlin: '#F18E33',
+    Rust: '#dea584',
+    Dart: '#00B4AB',
+  }
+  
+  return colors[language] || '#8257e5'
 } 

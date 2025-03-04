@@ -1,189 +1,135 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { signIn, signOut, useSession } from 'next-auth/react'
 import Image from 'next/image'
 import { useTheme } from './ThemeProvider'
 
 export default function Navbar() {
+  const pathname = usePathname()
+  const { data: session, status } = useSession()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
-  const { data: session, status } = useSession()
-  const isAuthenticated = status === 'authenticated'
+  const [scrolled, setScrolled] = useState(false)
+  const appVersion = process.env.APP_VERSION || '1.0.5' // 환경 변수에서 버전 가져오기, 없으면 기본값
   const { theme } = useTheme()
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
-    <nav className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="flex items-center">
-                <Image 
-                  src="/images/Contribase_logo.webp" 
-                  alt="Contribase 로고" 
-                  width={160} 
-                  height={30} 
-                  className="h-6 w-auto"
-                />
-              </Link>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              >
-                대시보드
-              </Link>
-              <Link
-                href="/features"
-                className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              >
-                기능
-              </Link>
-              <Link
-                href="/about"
-                className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              >
-                소개
-              </Link>
-            </div>
-          </div>
-          <div className="flex items-center">
-            {isAuthenticated ? (
-              <div className="ml-3 relative">
-                <div>
-                  <button
-                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                    className="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300"
-                    id="user-menu"
-                    aria-expanded="false"
-                    aria-haspopup="true"
-                  >
-                    <span className="sr-only">사용자 메뉴 열기</span>
-                    <Image
-                      className="h-8 w-8 rounded-full"
-                      src={session?.user?.image || '/images/default-avatar.png'}
-                      alt="사용자 프로필"
-                      width={32}
-                      height={32}
-                    />
-                  </button>
-                </div>
-                
-                {isProfileMenuOpen && (
-                  <div
-                    className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
-                    role="menu"
-                    aria-orientation="vertical"
-                    aria-labelledby="user-menu"
-                  >
-                    <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-200">
-                      <p className="font-medium">{session?.user?.name || "사용자"}</p>
-                      <p className="text-xs text-gray-500 truncate">{session?.user?.email || ""}</p>
-                    </div>
-                    <Link
-                      href="/dashboard"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      role="menuitem"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                    >
-                      대시보드
-                    </Link>
-                    <button
-                      className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      role="menuitem"
-                      onClick={() => {
-                        signOut({ callbackUrl: '/' });
-                        setIsProfileMenuOpen(false);
-                      }}
-                    >
-                      로그아웃
-                    </button>
-                  </div>
-                )}
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md' : 'bg-white dark:bg-gray-900'}`}>
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex justify-between items-center">
+          {/* 로고 */}
+          <Link href="/" className="flex items-center space-x-2 text-primary-600 dark:text-primary-400">
+            <Image 
+              src="/images/Contribase_logo.webp" 
+              alt="Contribase 로고" 
+              width={160} 
+              height={30} 
+              className="h-6 w-auto"
+            />
+          </Link>
+
+          {/* 데스크톱 메뉴 */}
+          <div className="hidden md:flex items-center space-x-8">
+            <Link href="/" className={`text-sm font-medium ${pathname === '/' 
+              ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400 font-bold' 
+              : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'}`}>
+              홈
+            </Link>
+            <Link href="/dashboard" className={`text-sm font-medium ${pathname === '/dashboard' || pathname.startsWith('/dashboard/') 
+              ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400 font-bold' 
+              : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'}`}>
+              대시보드
+            </Link>
+            <Link href="/features" className={`text-sm font-medium ${pathname === '/features' 
+              ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400 font-bold' 
+              : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'}`}>
+              기능
+            </Link>
+            <Link href="/about" className={`text-sm font-medium ${pathname === '/about' 
+              ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400 font-bold' 
+              : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'}`}>
+              소개
+            </Link>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              v{appVersion}
+            </span>
+            {session ? (
+              <div className="flex items-center space-x-4">
+                <button onClick={() => signOut()} className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
+                  로그아웃
+                </button>
               </div>
             ) : (
-              <Link
-                href="/auth/github"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                로그인
-              </Link>
-            )}
-            
-            <div className="ml-2 -mr-2 flex items-center sm:hidden">
-              <button
-                type="button"
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
-                aria-controls="mobile-menu"
-                aria-expanded="false"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-              >
-                <span className="sr-only">메뉴 열기</span>
-                {!isMenuOpen ? (
-                  <svg
-                    className="block h-6 w-6"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="block h-6 w-6"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                )}
+              <button onClick={() => signIn('github')} className="text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 py-2 px-4 rounded-lg transition-colors">
+                GitHub 로그인
               </button>
-            </div>
+            )}
           </div>
+
+          {/* 모바일 메뉴 버튼 */}
+          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden text-gray-600 dark:text-gray-300">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              {isMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
         </div>
       </div>
 
-      {/* Mobile menu, toggle by state */}
+      {/* 모바일 메뉴 */}
       {isMenuOpen && (
-        <div className="sm:hidden" id="mobile-menu">
-          <div className="pt-2 pb-3 space-y-1">
-            <Link
-              href="/dashboard"
-              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
-            >
+        <div className="md:hidden bg-white dark:bg-gray-900 py-4 px-4 shadow-lg">
+          <nav className="flex flex-col space-y-4">
+            <Link href="/" className={`text-sm font-medium py-2 ${pathname === '/' 
+              ? 'text-primary-600 dark:text-primary-400 border-l-4 border-primary-600 dark:border-primary-400 font-bold pl-2' 
+              : 'text-gray-600 dark:text-gray-300'}`}>
+              홈
+            </Link>
+            <Link href="/dashboard" className={`text-sm font-medium py-2 ${pathname === '/dashboard' || pathname.startsWith('/dashboard/') 
+              ? 'text-primary-600 dark:text-primary-400 border-l-4 border-primary-600 dark:border-primary-400 font-bold pl-2' 
+              : 'text-gray-600 dark:text-gray-300'}`}>
               대시보드
             </Link>
-            <Link
-              href="/features"
-              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
-            >
+            <Link href="/features" className={`text-sm font-medium py-2 ${pathname === '/features' 
+              ? 'text-primary-600 dark:text-primary-400 border-l-4 border-primary-600 dark:border-primary-400 font-bold pl-2' 
+              : 'text-gray-600 dark:text-gray-300'}`}>
               기능
             </Link>
-            <Link
-              href="/about"
-              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
-            >
+            <Link href="/about" className={`text-sm font-medium py-2 ${pathname === '/about' 
+              ? 'text-primary-600 dark:text-primary-400 border-l-4 border-primary-600 dark:border-primary-400 font-bold pl-2' 
+              : 'text-gray-600 dark:text-gray-300'}`}>
               소개
             </Link>
-          </div>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              v{appVersion}
+            </span>
+            {session ? (
+              <>
+                <button onClick={() => signOut()} className="text-sm font-medium text-gray-600 dark:text-gray-300 text-left">
+                  로그아웃
+                </button>
+              </>
+            ) : (
+              <button onClick={() => signIn('github')} className="text-sm font-medium text-primary-600 dark:text-primary-400 text-left">
+                GitHub 로그인
+              </button>
+            )}
+          </nav>
         </div>
       )}
     </nav>

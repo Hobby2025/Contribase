@@ -42,7 +42,7 @@ export default function RootLayout({
           <ThemeProvider>
             <div className="flex flex-col min-h-screen dark:bg-gray-900 dark:text-white">
               <Navbar />
-              <main className="flex-grow">{children}</main>
+              <main className="flex-grow pt-16">{children}</main>
               <Footer />
               <ScrollToTop />
             </div>

@@ -11,10 +11,13 @@ const handler = NextAuth({
     GithubProvider({
       clientId: process.env.GITHUB_ID || '',
       clientSecret: process.env.GITHUB_SECRET || '',
-      // GitHub에서 사용자 저장소 정보를 읽을 수 있는 권한 요청
+      // 동적으로 scope를 처리할 수 있도록 설정
       authorization: {
         params: {
+          // 기본 스코프는 사용자 정보와 이메일, 저장소 읽기 권한만 포함
           scope: 'read:user user:email repo',
+          // 항상 권한 동의 화면이 표시되도록 설정
+          prompt: 'consent'
         },
       },
     }),

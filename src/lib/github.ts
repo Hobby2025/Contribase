@@ -74,10 +74,52 @@ export async function getUserProfile(accessToken: string) {
 
 // 사용자 저장소 목록 가져오기
 export async function getUserRepositories(accessToken: string): Promise<Repository[]> {
-  return fetchGitHubAPI<Repository[]>(
+  // 개인 저장소 가져오기
+  const userRepos = await fetchGitHubAPI<Repository[]>(
     accessToken,
     '/user/repos?sort=updated&per_page=100'
-  )
+  );
+  
+  try {
+    // 사용자가 속한 조직 목록 가져오기
+    const orgs = await getUserOrganizations(accessToken);
+    
+    // 각 조직의 저장소 가져오기
+    const orgReposPromises = orgs.map(org => 
+      getOrganizationRepositories(accessToken, org.login)
+    );
+    
+    // 모든 조직 저장소 결과 기다리기
+    const orgReposResults = await Promise.allSettled(orgReposPromises);
+    
+    // 성공적으로 가져온 조직 저장소만 필터링
+    const orgRepos = orgReposResults
+      .filter((result): result is PromiseFulfilledResult<Repository[]> => result.status === 'fulfilled')
+      .flatMap(result => result.value);
+    
+    // 개인 저장소와 조직 저장소 합치기
+    return [...userRepos, ...orgRepos];
+  } catch (error) {
+    console.error('조직 저장소 가져오기 오류:', error);
+    // 오류 발생 시 개인 저장소만 반환
+    return userRepos;
+  }
+}
+
+// 사용자가 속한 조직 목록 가져오기
+export async function getUserOrganizations(accessToken: string): Promise<{login: string, url: string}[]> {
+  return fetchGitHubAPI<{login: string, url: string}[]>(
+    accessToken,
+    '/user/orgs'
+  );
+}
+
+// 특정 조직의 저장소 목록 가져오기
+export async function getOrganizationRepositories(accessToken: string, org: string): Promise<Repository[]> {
+  return fetchGitHubAPI<Repository[]>(
+    accessToken,
+    `/orgs/${org}/repos?sort=updated&per_page=100`
+  );
 }
 
 // 특정 저장소의 커밋 목록 가져오기
