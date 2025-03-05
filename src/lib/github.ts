@@ -191,6 +191,7 @@ export async function getOrganizationRepositories(accessToken: string, org: stri
  */
 export async function getRepositoryCommits(accessToken: string, owner: string, repo: string): Promise<any[]> {
   try {
+    // 기본 커밋 정보 가져오기
     const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=100`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -202,7 +203,39 @@ export async function getRepositoryCommits(accessToken: string, owner: string, r
       throw new Error(`GitHub API 요청 실패: ${response.status}`)
     }
     
-    return await response.json()
+    const commits = await response.json();
+    console.log(`기본 커밋 정보 ${commits.length}개 로드됨`);
+    
+    // 각 커밋의 상세 정보 가져오기 (변경 파일, 추가/삭제 줄 수 등)
+    const commitsWithDetails = await Promise.all(
+      commits.map(async (commit: any) => {
+        try {
+          const detailResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits/${commit.sha}`, {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Accept': 'application/vnd.github.v3+json'
+            },
+          });
+          
+          if (!detailResponse.ok) {
+            console.warn(`커밋 상세 정보 가져오기 실패 (${commit.sha}): ${detailResponse.status}`);
+            return commit;
+          }
+          
+          const detailData = await detailResponse.json();
+          return {
+            ...commit,
+            stats: detailData.stats,
+            files: detailData.files
+          };
+        } catch (detailError) {
+          console.warn(`커밋 상세 정보 처리 오류 (${commit.sha}):`, detailError);
+          return commit;
+        }
+      })
+    );
+    
+    return commitsWithDetails;
   } catch (error) {
     console.error('커밋 기록 가져오기 오류:', error)
     throw error

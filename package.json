@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:models": "npx tsx src/app/api/analyze/model-test.ts"
   },
   "repository": {
     "type": "git",
@@ -25,8 +26,8 @@
     "@types/node": "^22.13.8",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
-    "@xenova/transformers": "^2.17.2",
     "autoprefixer": "^10.4.20",
+    "chart.js": "^4.4.8",
     "eslint": "^9.21.0",
     "eslint-config-next": "^15.2.0",
     "next": "^15.2.0",
@@ -35,11 +36,13 @@
     "pdf-lib": "^1.17.1",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
+    "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.7.3"
   },
   "devDependencies": {
-    "null-loader": "^4.0.1"
+    "null-loader": "^4.0.1",
+    "tsx": "^4.19.3"
   }
 }

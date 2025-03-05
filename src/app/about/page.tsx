@@ -8,7 +8,7 @@ export default function About() {
         <div className="container max-w-5xl mx-auto px-4">
           <h1 className="text-4xl font-bold mb-6 text-center">Contribase 소개</h1>
           <p className="text-xl text-primary-100 text-center max-w-3xl mx-auto">
-            AI 기반 GitHub 분석 서비스로 개발자들의 포트폴리오 생성을 자동화합니다.
+            규칙 기반 GitHub 분석 서비스로 개발자들의 포트폴리오 생성을 자동화합니다.
           </p>
         </div>
       </div>
@@ -36,7 +36,7 @@ export default function About() {
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">해결책</h3>
               <div className="prose prose-lg dark:prose-invert">
                 <p className="dark:text-gray-300">
-                  Contribase는 AI 기술을 활용하여 GitHub 커밋 이력을 자동으로 분석함으로써, 개발자의 실제 기여도와 기술적 성장을 객관적으로 문서화합니다. 이를 통해 개발자들은 자신의 경험과 역량을 보다 정확하고 전문적으로 표현할 수 있습니다.
+                  Contribase는 규칙 기반 분석 시스템을 활용하여 GitHub 커밋 이력을 자동으로 분석함으로써, 개발자의 실제 기여도와 기술적 성장을 객관적으로 문서화합니다. 이를 통해 개발자들은 자신의 경험과 역량을 보다 정확하고 전문적으로 표현할 수 있습니다.
                 </p>
               </div>
             </div>
@@ -137,6 +137,38 @@ export default function About() {
                   <span className="dark:text-gray-300">클라이언트 & Edge 모델 최적화</span>
                 </li>
               </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 향후 발전 계획 섹션 (새로 추가) */}
+      <div className="py-16 dark:bg-gray-900">
+        <div className="container max-w-5xl mx-auto px-4">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">향후 발전 계획</h2>
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-4xl mx-auto mb-10 text-center">
+            현재 Contribase는 규칙 기반 분석 시스템을 사용하고 있으며, 향후 버전에서는 인공지능 기술을 도입하여 더욱 정확하고 인사이트 있는 분석을 제공할 계획입니다.
+          </p>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">AI 기반 커밋 분석</h3>
+              <p className="text-gray-600 dark:text-gray-300">머신러닝 모델을 활용하여 커밋 메시지의 의도와 패턴을 더 정확하게 파악합니다.</p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">코드 품질 평가</h3>
+              <p className="text-gray-600 dark:text-gray-300">인공지능 기반 코드 품질 평가 시스템을 통해 코드 개선 방향을 제안합니다.</p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">개발자 프로필 생성</h3>
+              <p className="text-gray-600 dark:text-gray-300">자연어 처리 기술을 활용한 맞춤형 개발자 프로필을 자동으로 생성합니다.</p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">기술 트렌드 분석</h3>
+              <p className="text-gray-600 dark:text-gray-300">최신 기술 트렌드와 개발자의 역량을 연계한 심층 분석을 제공합니다.</p>
             </div>
           </div>
         </div>

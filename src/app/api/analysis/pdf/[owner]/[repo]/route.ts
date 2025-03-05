@@ -43,6 +43,27 @@ async function fetchAnalysisData(accessToken: string, owner: string, repo: strin
         { title: 'Web Development Expertise', description: 'Shows strength in frontend technologies' },
         { title: 'Data Visualization Experience', description: 'Has experience in data visualization and analysis' },
       ],
+      developerProfile: {
+        workStyle: '협업형',
+        strengths: ['프론트엔드 개발', '데이터 시각화', 'UI/UX 디자인'],
+        growthAreas: ['테스트 자동화', '성능 최적화'],
+        collaborationPattern: '적극적인 코드 리뷰어',
+        communicationStyle: '명확하고 간결한 커뮤니케이션',
+      },
+      developmentPattern: {
+        peakProductivityTime: '오후 2시-6시',
+        commitFrequency: '주 3-4회',
+        codeReviewStyle: '세부적이고 구체적인 피드백',
+        iterationSpeed: '중간 속도',
+        focusAreas: ['UI 컴포넌트', '데이터 처리', '인증 시스템'],
+      },
+      codeQualityMetrics: {
+        readability: 75,
+        maintainability: 80,
+        testCoverage: 60,
+        documentation: 70,
+        architecture: 85
+      },
     };
   } catch (error) {
     console.error('Analysis data fetch error:', error);

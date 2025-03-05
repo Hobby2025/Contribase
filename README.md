@@ -5,11 +5,11 @@
 
 ![Contribase@1x](https://github.com/user-attachments/assets/ad20f071-c4f8-4405-a2d5-7471d6036c5e)
 
-GitHub 활동 기반 AI 포트폴리오 생성기
+GitHub 활동 기반 포트폴리오 생성기
 
 ## 소개
 
-Contribase는 개발자의 GitHub 활동을 분석하여 포트폴리오를 자동으로 생성해주는 웹 애플리케이션입니다. AI 기술을 활용하여 커밋 메시지와 코드 변경 내역을 분석함으로써, 개발자의 실제 기여도와 기술적 성장을 객관적으로 문서화합니다.
+Contribase는 개발자의 GitHub 활동을 분석하여 포트폴리오를 자동으로 생성해주는 웹 애플리케이션입니다. 규칙 기반 분석 시스템을 활용하여 커밋 메시지와 코드 변경 내역을 분석함으로써, 개발자의 실제 기여도와 기술적 성장을 객관적으로 문서화합니다.
 
 개발자들은 다양한 프로젝트에 참여하며 값진 경험을 쌓지만, 이를 포트폴리오로 정리하는 과정에서 어려움을 겪습니다. Contribase는 이 과정을 자동화하여 개발자들이 자신의 경험과 역량을 보다 정확하고 전문적으로 표현할 수 있도록 돕습니다.
 
@@ -21,6 +21,17 @@ Contribase는 개발자의 GitHub 활동을 분석하여 포트폴리오를 자�
 - **PDF 포트폴리오**: 분석 결과를 바탕으로 전문적인 PDF 포트폴리오 자동 생성
 - **대시보드**: 실시간 분석 결과와 인터랙티브 차트 제공
 - **GitHub 인증**: GitHub OAuth를 통한 안전한 인증 시스템
+
+## 향후 개발 계획
+
+현재 Contribase는 규칙 기반 분석 시스템을 사용하여 개발자의 활동을 분석합니다. 향후 버전에서는 다음과 같은 인공지능 기술을 도입할 예정입니다:
+
+- **AI 기반 커밋 분석**: 머신러닝 모델을 활용한 고도화된 커밋 메시지 분석
+- **코드 품질 평가**: 인공지능 기반 코드 품질 평가 및 개선 제안
+- **개발자 프로필 생성**: 자연어 처리 기술을 활용한 맞춤형 개발자 프로필 자동 생성
+- **기술 트렌드 분석**: 최신 기술 트렌드와 개발자 역량을 연계한 분석
+
+이러한 개선을 통해 더욱 정확하고 인사이트 있는 분석 결과를 제공할 계획입니다.
 
 ## 설치 방법
 
@@ -41,11 +52,9 @@ Contribase는 개발자의 GitHub 활동을 분석하여 포트폴리오를 자�
    # NextAuth
    NEXTAUTH_URL=http://localhost:3000
    NEXTAUTH_SECRET=your_nextauth_secret_key_here
-
+   
    # 분석 설정
-   ANALYSIS_MODE=local-model
-   ROBERTA_MODEL_PATH=models/roberta-commit-classifier
-   CODEBERT_MODEL_PATH=models/codebert-change-analyzer 
+   ANALYSIS_MODE=rule-based
    ```
 
 3. 의존성 설치:
