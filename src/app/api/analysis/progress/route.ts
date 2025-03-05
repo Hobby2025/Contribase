@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 
 // 간단한 인메모리 캐시로 진행 상태를 저장
 // 실제 프로덕션에서는 Redis나 다른 상태 저장소를 사용하는 것이 좋습니다
@@ -77,21 +78,24 @@ export async function GET(request: NextRequest) {
  * POST /api/analysis/progress
  * 
  * 분석 진행 상태를 업데이트하는 API 엔드포인트입니다.
- * 요청 본문에 repo, progress, stage 등을 포함해야 합니다.
+ * 쿼리 파라미터로 repo를 전달해야 하고, 요청 본문에 progress, stage 등을 포함해야 합니다.
  */
 export async function POST(request: NextRequest) {
   try {
-    // 요청 본문 파싱
-    const body = await request.json();
-    const { repo, progress, stage, completed, error, result } = body;
+    // URL에서 저장소 이름 가져오기
+    const searchParams = request.nextUrl.searchParams;
+    const repo = searchParams.get('repo');
     
-    // 요청 검증
     if (!repo) {
       return NextResponse.json(
         { error: '저장소 이름이 제공되지 않았습니다.' },
         { status: 400 }
       );
     }
+    
+    // 요청 본문 파싱
+    const body = await request.json();
+    const { progress, stage, completed, error, result } = body;
     
     // 진행 상태 업데이트
     analysisProgressCache[repo] = {

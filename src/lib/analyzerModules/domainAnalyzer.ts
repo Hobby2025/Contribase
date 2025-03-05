@@ -145,7 +145,7 @@ export function analyzeProjectCharacteristics(
   
   characteristics.push({
     type: '프로젝트 규모',
-    score: Math.min(100, totalCommits / 10),
+    score: Math.min(100, Math.round(totalCommits / 10)),
     description: `${projectSize} 프로젝트 (총 ${totalCommits}개의 커밋)`
   });
   
@@ -159,7 +159,7 @@ export function analyzeProjectCharacteristics(
   if (featureRatio > 0.5) {
     characteristics.push({
       type: '개발 중점',
-      score: featureRatio * 100,
+      score: Math.round(featureRatio * 100),
       description: '기능 개발에 중점을 둔 프로젝트'
     });
   }
@@ -168,7 +168,7 @@ export function analyzeProjectCharacteristics(
   if (fixRatio > 0.3) {
     characteristics.push({
       type: '안정성',
-      score: fixRatio * 100,
+      score: Math.round(fixRatio * 100),
       description: '안정성과 버그 수정에 중점을 둔 프로젝트'
     });
   }
@@ -177,7 +177,7 @@ export function analyzeProjectCharacteristics(
   if (refactorRatio > 0.2) {
     characteristics.push({
       type: '코드 품질',
-      score: refactorRatio * 100,
+      score: Math.round(refactorRatio * 100),
       description: '코드 품질과 리팩토링에 중점을 둔 프로젝트'
     });
   }
@@ -186,7 +186,7 @@ export function analyzeProjectCharacteristics(
   if (docsRatio > 0.15) {
     characteristics.push({
       type: '문서화',
-      score: docsRatio * 100,
+      score: Math.round(docsRatio * 100),
       description: '문서화에 중점을 둔 프로젝트'
     });
   }
@@ -211,13 +211,13 @@ export function analyzeProjectCharacteristics(
     if (consistencyScore > 60) {
       characteristics.push({
         type: '개발 일관성',
-        score: consistencyScore,
+        score: Math.round(consistencyScore),
         description: '일관된 개발 패턴을 보이는 프로젝트'
       });
     } else if (consistencyScore < 30) {
       characteristics.push({
         type: '개발 패턴',
-        score: 100 - consistencyScore,
+        score: Math.round(100 - consistencyScore),
         description: '산발적인 개발 패턴을 보이는 프로젝트'
       });
     }

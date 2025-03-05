@@ -59,7 +59,7 @@ async function updateAnalysisProgress(
   result?: any
 ) {
   try {
-    const response = await fetch(`/api/analysis/progress/${owner}/${repo}`, {
+    const response = await fetch(`/api/analysis/progress?repo=${owner}/${repo}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -268,6 +268,14 @@ export async function analyzeRepository(
         confidence: 1.0 // 언어 사용량은 GitHub API에서 직접 가져오므로 신뢰도 100%
       };
     }).sort((a, b) => b.usage - a.usage);
+    
+    // 총 바이트 수 계산
+    const totalBytes = techStack.reduce((sum, item) => sum + item.usage, 0);
+    
+    // 백분율로 변환
+    techStack.forEach(item => {
+      item.usage = Math.round((item.usage / totalBytes) * 100);
+    });
     
     // 4. 프로젝트 특성 분석
     console.log('프로젝트 특성 분석 중...');

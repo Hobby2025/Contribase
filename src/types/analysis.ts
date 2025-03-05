@@ -75,6 +75,18 @@ export interface AnalysisResult {
   // 프로젝트 요약
   summary: string;
   
+  // 코드 품질 (선택적)
+  codeQuality?: number;
+  
+  // 코드 품질 메트릭 (선택적)
+  codeQualityMetrics?: {
+    readability: number;
+    maintainability: number;
+    testCoverage: number;
+    documentation: number;
+    architecture: number;
+  };
+  
   // 메타데이터
   meta: {
     generatedAt: string;
