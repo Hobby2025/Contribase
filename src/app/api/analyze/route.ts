@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { 
-  loadRobertaModel, 
-  loadCodeBERTModel,
   analyzeCommitMessages,
   analyzeCodeChanges,
   getModelStatus
-} from '@/lib/modelUtils';
+} from '@/lib/modelUtils.client';
 import { ANALYSIS_CONFIG } from '@/lib/config';
 
 export async function POST(request: NextRequest) {
@@ -164,11 +162,23 @@ function analyzeDevelopmentPattern(promptData: any) {
     if (!commits || commits.length === 0) {
       console.log('분석할 커밋 데이터가 없습니다. 기본 응답을 반환합니다.');
       return {
-        peakProductivityTime: '데이터 기반 분석 필요',
-        commitFrequency: '더 많은 커밋 데이터가 필요합니다.',
-        codeReviewStyle: '더 많은 커밋 데이터가 필요합니다.',
-        iterationSpeed: '더 많은 커밋 데이터가 필요합니다.',
-        focusAreas: ['충분한 데이터가 모이면 자동으로 분석됩니다.']
+        peakProductivityTime: '데이터가 부족하여 정확한 분석이 어렵습니다',
+        commitFrequency: '데이터가 부족하여 정확한 분석이 어렵습니다',
+        codeReviewStyle: '데이터가 부족하여 정확한 분석이 어렵습니다',
+        iterationSpeed: '데이터가 부족하여 정확한 분석이 어렵습니다',
+        focusAreas: ['데이터가 부족하여 정확한 분석이 어렵습니다']
+      };
+    }
+    
+    // 최소 데이터 요구사항 확인 (의미 있는 분석을 위해 최소 10개의 커밋 필요)
+    if (commits.length < 10) {
+      console.log('의미 있는 분석을 위한 커밋 데이터가 부족합니다. 제한된 응답을 반환합니다.');
+      return {
+        peakProductivityTime: '데이터가 부족하여 정확한 분석이 어렵습니다',
+        commitFrequency: `${commits.length}개의 커밋이 있습니다. 의미있는 분석을 위해 최소 10개 이상의 커밋이 필요합니다.`,
+        codeReviewStyle: '데이터가 부족하여 정확한 분석이 어렵습니다',
+        iterationSpeed: '데이터가 부족하여 정확한 분석이 어렵습니다',
+        focusAreas: ['데이터가 부족하여 정확한 분석이 어렵습니다']
       };
     }
     
@@ -257,7 +267,7 @@ function analyzeDevelopmentPattern(promptData: any) {
     }
 
     // 커밋 빈도 계산
-    const commitFrequency = commits.length < 10 ? '낮은 빈도' : 
+    const commitFrequency = commits.length < 10 ? '데이터가 부족하여 정확한 분석이 어렵습니다' : 
                            commits.length < 30 ? '중간 빈도' : '높은 빈도';
 
     // 파일 유형 분석 (실제로는 더 정교한 분석 필요)
@@ -275,20 +285,26 @@ function analyzeDevelopmentPattern(promptData: any) {
 
     // 주요 집중 영역 결정
     const focusAreas: string[] = [];
-    if (fileTypes.has('js') || fileTypes.has('ts')) focusAreas.push('프런트엔드 개발');
-    if (fileTypes.has('py') || fileTypes.has('java')) focusAreas.push('백엔드 개발');
-    if (fileTypes.has('css') || fileTypes.has('scss')) focusAreas.push('UI 개발');
-    if (fileTypes.has('test.js') || fileTypes.has('test.ts') || fileTypes.has('spec.js')) focusAreas.push('테스트 작성');
-    if (fileTypes.has('md') || fileTypes.has('txt')) focusAreas.push('문서화');
+    
+    // 충분한 데이터가 있는 경우에만 집중 영역 분석
+    if (commits.length >= 10) {
+      if (fileTypes.has('js') || fileTypes.has('ts')) focusAreas.push('프런트엔드 개발');
+      if (fileTypes.has('py') || fileTypes.has('java')) focusAreas.push('백엔드 개발');
+      if (fileTypes.has('css') || fileTypes.has('scss')) focusAreas.push('UI 개발');
+      if (fileTypes.has('test.js') || fileTypes.has('test.ts') || fileTypes.has('spec.js')) focusAreas.push('테스트 작성');
+      if (fileTypes.has('md') || fileTypes.has('txt')) focusAreas.push('문서화');
+    }
 
-    if (focusAreas.length === 0) focusAreas.push('코드 개발');
+    if (focusAreas.length === 0) {
+      focusAreas.push('데이터가 부족하여 정확한 분석이 어렵습니다');
+    }
 
     // 결과 반환
     return {
-      peakProductivityTime: `${peakTimeDesc} 시간대에 가장 활발한 개발 활동을 보입니다.`,
-      commitFrequency: `${commitFrequency}의 커밋 패턴을 보입니다.`,
-      codeReviewStyle: '데이터 기반 분석 필요',
-      iterationSpeed: commits.length < 20 ? '느린 반복 개발 속도' : '빠른 반복 개발 속도',
+      peakProductivityTime: commits.length < 10 ? '데이터가 부족하여 정확한 분석이 어렵습니다' : `${peakTimeDesc} 시간대에 가장 활발한 개발 활동을 보입니다.`,
+      commitFrequency: commitFrequency,
+      codeReviewStyle: commits.length < 15 ? '데이터가 부족하여 정확한 분석이 어렵습니다' : '정기적인 코드 리뷰',
+      iterationSpeed: commits.length < 10 ? '데이터가 부족하여 정확한 분석이 어렵습니다' : commits.length < 20 ? '느린 반복 개발 속도' : '빠른 반복 개발 속도',
       focusAreas
     };
   } catch (error) {
@@ -296,11 +312,11 @@ function analyzeDevelopmentPattern(promptData: any) {
     
     // 오류 시 기본 응답
     return {
-      peakProductivityTime: '데이터 기반 분석 필요',
-      commitFrequency: '데이터 부족',
-      codeReviewStyle: '데이터 부족',
-      iterationSpeed: '데이터 부족',
-      focusAreas: ['데이터 부족']
+      peakProductivityTime: '데이터가 부족하여 정확한 분석이 어렵습니다',
+      commitFrequency: '데이터가 부족하여 정확한 분석이 어렵습니다',
+      codeReviewStyle: '데이터가 부족하여 정확한 분석이 어렵습니다',
+      iterationSpeed: '데이터가 부족하여 정확한 분석이 어렵습니다',
+      focusAreas: ['데이터가 부족하여 정확한 분석이 어렵습니다']
     };
   }
 } 

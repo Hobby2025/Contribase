@@ -196,14 +196,17 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
 
           {/* 프로젝트 특성 */}
           <ProjectCharacteristics 
-            characteristics={analysis.projectCharacteristics}
+            characteristics={analysis.characteristics}
             analysisType="personal"
-            userLogin={session?.user?.name || undefined} 
+            userLogin={session?.user?.name || undefined}
           />
 
           {/* 기여도 분석 */}
           <ContributionAnalysis 
-            contributions={analysis.contributions}
+            contributions={Object.entries(analysis.developerProfile.commitCategories).map(([category, count]) => ({
+              category,
+              percentage: Math.round((count / analysis.developerProfile.totalCommits) * 100)
+            }))}
             analysisType="personal"
             userLogin={session?.user?.name || undefined}
           />
@@ -225,7 +228,7 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           <div className="bg-white shadow rounded-xl p-7">
             <h2 className="text-xl font-semibold text-gray-900 mb-5">개발 패턴 인사이트</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {analysis.developerInsights.map((insight, index) => (
+              {analysis.insights.map((insight, index) => (
                 <div key={index} className="bg-blue-50 rounded-xl p-5 border border-blue-100">
                   <h3 className="text-md font-medium text-blue-800">{insight.title}</h3>
                   <p className="mt-2 text-sm text-blue-700 leading-relaxed">{insight.description}</p>
@@ -276,29 +279,12 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           </div>
 
           {/* 코드 품질 */}
-          <div className="bg-white shadow rounded-xl p-7">
-            <h2 className="text-xl font-semibold text-gray-900 mb-5">코드 품질</h2>
-            <div className="flex flex-col md:flex-row items-center mb-7">
-              <div className="w-36 h-36 rounded-full border-8 border-primary-200 flex items-center justify-center mr-7 mb-5 md:mb-0">
-                <span className="text-5xl font-bold text-primary-600">{analysis.codeQuality}</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-medium text-gray-800 mb-3">코드 품질 점수</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  이 점수는 코드 일관성, 가독성, 문서화, 테스트 커버리지, 구조화 등을 종합적으로 평가한 결과입니다.
-                </p>
-              </div>
-            </div>
-            
-            {/* 코드 품질 메트릭 */}
-            <div className="space-y-6">
-              {analysis.codeQualityMetrics && (
-                <CodeQualityMetrics 
-                  codeQualityMetrics={analysis.codeQualityMetrics} 
-                />
-              )}
-            </div>
-          </div>
+          <CodeQualityMetrics 
+            score={analysis.codeQuality}
+            metrics={analysis.codeQualityMetrics}
+            analysisType="personal"
+            userLogin={session?.user?.name || undefined}
+          />
 
           {/* 개발 패턴 */}
           <DevelopmentPattern 

@@ -9,61 +9,67 @@ import { getRepositoryDetails } from '@/lib/github'
 async function fetchAnalysisData(accessToken: string, owner: string, repo: string): Promise<AnalysisResult> {
   try {
     // 프로덕션 환경에서는 DB나 캐시에서 분석 데이터를 가져올 수 있습니다
-    // 여기서는 간단한 예제 데이터를 반환합니다
+    // 여기서는 실제 데이터가 없는 필드는 '데이터 없음'으로 표시합니다
     return {
+      repositoryInfo: {
+        owner,
+        repo,
+        isUserAnalysis: false
+      },
       techStack: [
-        { name: 'JavaScript', percentage: 45 },
-        { name: 'TypeScript', percentage: 30 },
-        { name: 'HTML', percentage: 15 },
-        { name: 'CSS', percentage: 10 },
-      ],
-      contributions: [
-        { category: 'Feature', percentage: 40 },
-        { category: 'Bug Fix', percentage: 20 },
-        { category: 'Refactoring', percentage: 15 },
-        { category: 'Documentation', percentage: 15 },
-        { category: 'Testing', percentage: 10 },
-      ],
-      keyFeatures: [
-        { title: 'User Authentication', description: 'Implemented user authentication using GitHub OAuth', importance: 5 },
-        { title: 'Repository Analysis', description: 'Code analysis and statistics for repositories', importance: 5 },
-        { title: 'PDF Download', description: 'Download analysis results as PDF', importance: 4 },
-      ],
-      projectCharacteristics: [
-        { type: 'Web Application', score: 4.5, description: 'Provides web-based interface' },
-        { type: 'Data Analysis', score: 4.2, description: 'Repository data visualization and analysis' },
-      ],
-      summary: `This project is a web application that analyzes GitHub repositories to visualize developer contribution patterns and project characteristics. It is primarily developed using TypeScript and Next.js, providing a user-friendly interface.`,
-      codeQuality: 4.2,
-      recommendations: [
-        { title: 'Add Tests', description: 'Need to strengthen unit tests and integration tests', priority: 'high' },
-        { title: 'Performance Optimization', description: 'Need to improve performance when analyzing large repositories', priority: 'medium' },
-      ],
-      developerInsights: [
-        { title: 'Web Development Expertise', description: 'Shows strength in frontend technologies' },
-        { title: 'Data Visualization Experience', description: 'Has experience in data visualization and analysis' },
+        { name: 'JavaScript', type: 'language', usage: 45, confidence: 100 },
+        { name: 'TypeScript', type: 'language', usage: 30, confidence: 100 },
+        { name: 'HTML', type: 'language', usage: 15, confidence: 100 },
+        { name: 'CSS', type: 'language', usage: 10, confidence: 100 },
       ],
       developerProfile: {
-        workStyle: '협업형',
-        strengths: ['프론트엔드 개발', '데이터 시각화', 'UI/UX 디자인'],
-        growthAreas: ['테스트 자동화', '성능 최적화'],
-        collaborationPattern: '적극적인 코드 리뷰어',
-        communicationStyle: '명확하고 간결한 커뮤니케이션',
+        totalCommits: 250,
+        contributors: [
+          { author: 'johndoe', email: 'john@example.com', commits: 150, percentage: 60 },
+          { author: 'janedoe', email: 'jane@example.com', commits: 100, percentage: 40 }
+        ],
+        commitCategories: {
+          '기능': 40,
+          '버그 수정': 20,
+          '리팩토링': 15,
+          '문서화': 15,
+          '테스트': 10,
+        },
+        activityPeriod: '6개월 동안 활동'
       },
+      domains: ['웹 애플리케이션', '데이터 분석'],
+      characteristics: [
+        { type: '웹 애플리케이션', score: 90, description: '웹 기반 인터페이스 제공' },
+        { type: '데이터 분석', score: 85, description: '저장소 데이터 시각화 및 분석' },
+      ],
       developmentPattern: {
-        peakProductivityTime: '오후 2시-6시',
-        commitFrequency: '주 3-4회',
-        codeReviewStyle: '세부적이고 구체적인 피드백',
-        iterationSpeed: '중간 속도',
-        focusAreas: ['UI 컴포넌트', '데이터 처리', '인증 시스템'],
+        commitFrequency: '데이터 기반 분석 필요',
+        developmentCycle: '데이터 기반 분석 필요',
+        teamDynamics: '데이터 기반 분석 필요',
+        workPatterns: {
+          time: '데이터 기반 분석 필요',
+          dayOfWeek: '데이터 기반 분석 필요',
+          mostActiveDay: '데이터 기반 분석 필요',
+          mostActiveHour: 0 // 분석 데이터 없음
+        }
       },
-      codeQualityMetrics: {
-        readability: 75,
-        maintainability: 80,
-        testCoverage: 60,
-        documentation: 70,
-        architecture: 85
-      },
+      keyFeatures: [
+        { title: '사용자 인증', description: 'GitHub OAuth를 사용한 사용자 인증 구현', importance: 90 },
+        { title: '저장소 분석', description: '코드 분석 및 저장소 통계', importance: 85 },
+        { title: 'PDF 다운로드', description: '분석 결과를 PDF로 다운로드', importance: 80 },
+      ],
+      insights: [
+        { title: '데이터 부족', description: '충분한 분석 데이터가 없습니다' },
+      ],
+      recommendations: [
+        { title: '충분한 코드베이스 필요', description: '더 정확한 분석을 위해 더 많은 코드와 커밋 데이터가 필요합니다', priority: 'medium' },
+      ],
+      summary: `이 프로젝트는 GitHub 저장소 ${owner}/${repo}에 대한 분석 결과입니다. 일부 영역은 충분한 데이터가 없어 정확한 분석이 어렵습니다.`,
+      // 코드 품질 및 메트릭은 실제 분석이 없으므로 생략
+      meta: {
+        generatedAt: new Date().toISOString(),
+        version: '1.0.0'
+      }
     };
   } catch (error) {
     console.error('Analysis data fetch error:', error);
@@ -183,7 +189,7 @@ export async function GET(
     
     for (const tech of analysisResult.techStack) {
       // 라벨
-      page.drawText(`${tech.name} (${tech.percentage}%)`, {
+      page.drawText(`${tech.name} (${tech.usage}%)`, {
         x: margin,
         y,
         size: 12,
@@ -206,7 +212,7 @@ export async function GET(
       page.drawRectangle({
         x: margin,
         y: y - barHeight,
-        width: barWidth * (tech.percentage / 100),
+        width: barWidth * (tech.usage / 100),
         height: barHeight,
         color: rgb(0.31, 0.47, 0.9)
       })
@@ -227,7 +233,8 @@ export async function GET(
     
     y -= 30
     
-    // 파이 차트를 대체하여 테이블 형식으로 변경
+    // 기여도는 AnalysisResult의 developerProfile.commitCategories에서 가져옵니다
+    const categories = Object.entries(analysisResult.developerProfile.commitCategories);
     const tableStartY = y;
     const tableWidth = width;
     const rowHeight = 30;
@@ -261,8 +268,8 @@ export async function GET(
     // 테이블 내용
     let currentY = tableStartY - rowHeight;
     
-    for (let i = 0; i < analysisResult.contributions.length; i++) {
-      const contrib = analysisResult.contributions[i];
+    for (let i = 0; i < categories.length; i++) {
+      const [category, percentage] = categories[i];
       const rowY = currentY - rowHeight;
       
       // 행 배경 (홀수/짝수 행 구분)
@@ -275,7 +282,7 @@ export async function GET(
       });
       
       // 첫 번째 열 - 카테고리
-      page.drawText(contrib.category, {
+      page.drawText(category, {
         x: margin + 20,
         y: rowY + rowHeight/2 - 5,
         size: 11,
@@ -284,7 +291,7 @@ export async function GET(
       });
       
       // 두 번째 열 - 퍼센트
-      page.drawText(`${contrib.percentage}%`, {
+      page.drawText(`${percentage}%`, {
         x: margin + colWidth + 20,
         y: rowY + rowHeight/2 - 5,
         size: 11,
@@ -334,27 +341,36 @@ export async function GET(
     
     y = currentY - 40;
     
-    // 코드 품질 점수 (영어로 작성)
-    page.drawText('Code Quality Assessment', {
+    // 품질 지표 섹션 - 이제 characteristics 사용
+    y -= 30;
+
+    page.drawText('Project Characteristics', {
       x: margin,
       y,
       size: 18,
       font: boldFont,
       color: rgb(0.31, 0.27, 0.9)
-    })
-    
-    y -= 30
-    
-    const score = analysisResult.codeQuality
-    const scoreText = `${score.toFixed(1)} / 5.0`
-    
-    page.drawText(scoreText, {
-      x: margin + 50,
-      y,
-      size: 24,
-      font: boldFont,
-      color: rgb(0.31, 0.6, 0.4)
-    })
+    });
+
+    y -= 30;
+
+    // 품질 점수 그리기 - characteristics 사용
+    const qualityStartY = y;
+    const itemHeight = 25;
+    const topMargin = 5;
+
+    for (const char of analysisResult.characteristics) {
+      // 특성 이름과 점수
+      page.drawText(`${char.type} (${char.score}/100)`, {
+        x: margin,
+        y,
+        size: 12,
+        font,
+        color: rgb(0.2, 0.2, 0.2)
+      });
+      
+      y -= 25;
+    }
     
     // 하단에 참고용 텍스트 추가
     const disclaimerText = "FOR REFERENCE ONLY - This report is automatically generated and should be used for reference purposes only."

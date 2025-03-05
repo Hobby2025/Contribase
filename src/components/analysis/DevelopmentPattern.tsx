@@ -5,11 +5,15 @@ import LineChart from '@/components/charts/LineChart'
 
 // 개발 패턴 타입 정의
 type DevelopmentPatternData = {
-  peakProductivityTime: string;
   commitFrequency: string;
-  codeReviewStyle: string;
-  iterationSpeed: string;
-  focusAreas: string[];
+  developmentCycle: string;
+  teamDynamics: string;
+  workPatterns: {
+    time: string;
+    dayOfWeek: string;
+    mostActiveDay: string;
+    mostActiveHour: number;
+  };
 }
 
 interface DevelopmentPatternProps {
@@ -25,6 +29,12 @@ export default function DevelopmentPattern({
 }: DevelopmentPatternProps) {
   // 활동 데이터 생성 함수
   const generateActivityData = (peakTimeStr: string) => {
+    // 데이터가 없음을 나타내는 문자열이 포함되어 있는지 확인
+    if (peakTimeStr.includes('데이터') || peakTimeStr.includes('분석 필요') || peakTimeStr.includes('부족')) {
+      // 데이터가 없는 경우 평평한 선을 표시
+      return Array(12).fill(1);
+    }
+    
     // 기본 낮은 활동 수준
     const baseActivity = 1;
     // 활동량 데이터 (24시간 중 12시간 간격만 보여줌)
@@ -68,6 +78,13 @@ export default function DevelopmentPattern({
     return activityData;
   }
 
+  // 데이터 부족 여부 확인
+  const hasLimitedData = 
+    developmentPattern.commitFrequency.includes('데이터') || 
+    developmentPattern.developmentCycle.includes('데이터') ||
+    developmentPattern.teamDynamics.includes('데이터') ||
+    developmentPattern.workPatterns.time.includes('데이터');
+
   return (
     <div className="bg-white shadow rounded-xl p-7">
       <h2 className="text-xl font-semibold text-gray-900 mb-5">
@@ -75,6 +92,17 @@ export default function DevelopmentPattern({
           ? `${userLogin || '사용자'}님의 개발 패턴` 
           : '개발 패턴'}
       </h2>
+      
+      {hasLimitedData && (
+        <div className="mb-5 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-700">
+          <p className="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            데이터 부족: 정확한 개발 패턴 분석을 위해 더 많은 커밋 데이터가 필요합니다.
+          </p>
+        </div>
+      )}
       
       {/* 시간대별 활동 차트 */}
       <div className="mb-7">
@@ -86,7 +114,7 @@ export default function DevelopmentPattern({
             labels: ['0시', '2시', '4시', '6시', '8시', '10시', '12시', '14시', '16시', '18시', '20시', '22시'],
             datasets: [{
               label: '활동량',
-              data: generateActivityData(developmentPattern.peakProductivityTime)
+              data: generateActivityData(developmentPattern.workPatterns.time)
             }]
           }}
           height={280}
@@ -97,7 +125,7 @@ export default function DevelopmentPattern({
           className="mx-auto"
         />
         <p className="text-sm text-gray-500 text-center mt-3">
-          생산성 높은 시간대: {developmentPattern.peakProductivityTime}
+          생산성 높은 시간대: {hasLimitedData ? '데이터가 부족하여 정확한 분석이 어렵습니다' : developmentPattern.workPatterns.time}
         </p>
       </div>
       
@@ -111,7 +139,9 @@ export default function DevelopmentPattern({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </span>
-            <p className="text-gray-700 leading-relaxed">{developmentPattern.peakProductivityTime}</p>
+            <p className="text-gray-700 leading-relaxed">
+              {hasLimitedData ? '데이터가 부족하여 정확한 분석이 어렵습니다' : developmentPattern.workPatterns.time}
+            </p>
           </div>
         </div>
         
@@ -123,7 +153,9 @@ export default function DevelopmentPattern({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
               </svg>
             </span>
-            <p className="text-gray-700 leading-relaxed">{developmentPattern.commitFrequency}</p>
+            <p className="text-gray-700 leading-relaxed">
+              {hasLimitedData ? '데이터가 부족하여 정확한 분석이 어렵습니다' : developmentPattern.commitFrequency}
+            </p>
           </div>
         </div>
         
@@ -135,12 +167,14 @@ export default function DevelopmentPattern({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </span>
-            <p className="text-gray-700 leading-relaxed">{developmentPattern.iterationSpeed}</p>
+            <p className="text-gray-700 leading-relaxed">
+              {hasLimitedData ? '데이터가 부족하여 정확한 분석이 어렵습니다' : developmentPattern.developmentCycle}
+            </p>
           </div>
         </div>
         
         <div className="bg-gray-50 rounded-xl p-5">
-          <h3 className="text-md font-medium text-gray-800 mb-3">코드 리뷰 스타일</h3>
+          <h3 className="text-md font-medium text-gray-800 mb-3">팀 역학</h3>
           <div className="flex items-center">
             <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-800 mr-3">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -148,20 +182,10 @@ export default function DevelopmentPattern({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </span>
-            <p className="text-gray-700 leading-relaxed">{developmentPattern.codeReviewStyle}</p>
+            <p className="text-gray-700 leading-relaxed">
+              {hasLimitedData ? '데이터가 부족하여 정확한 분석이 어렵습니다' : developmentPattern.teamDynamics}
+            </p>
           </div>
-        </div>
-      </div>
-      
-      {/* 주요 집중 영역 */}
-      <div>
-        <h3 className="text-md font-medium text-gray-800 mb-4">주요 집중 영역</h3>
-        <div className="flex flex-wrap gap-3">
-          {developmentPattern.focusAreas.map((area, index) => (
-            <span key={`focus-${index}`} className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
-              {area}
-            </span>
-          ))}
         </div>
       </div>
     </div>

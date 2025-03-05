@@ -1,12 +1,12 @@
 'use client'
 
-import { 
-  AnalysisResult,
-  ProjectCharacteristic,
-  TechStackItem,
-  Recommendation,
-  DeveloperProfile 
-} from '../../types/analysis';
+import { AnalysisResult } from '../../types/analysis';
+
+// 필요한 타입들을 AnalysisResult에서 추출
+type ProjectCharacteristic = AnalysisResult['characteristics'][0];
+type TechStackItem = AnalysisResult['techStack'][0];
+type Recommendation = AnalysisResult['recommendations'][0];
+type DeveloperProfile = AnalysisResult['developerProfile'];
 
 /**
  * 저장소 데이터를 처리하여 분석 결과를 생성합니다.
@@ -14,7 +14,6 @@ import {
 export function processRepositoryData(repoData: any): Partial<AnalysisResult> {
   // 저장소 데이터 처리 로직
   return {
-    analysisType: 'repository',
     summary: generateRepositorySummary(repoData),
     // 기타 필드들
   };
@@ -24,12 +23,12 @@ export function processRepositoryData(repoData: any): Partial<AnalysisResult> {
  * 개발자 프로필 데이터를 생성합니다.
  */
 export function processDeveloperProfile(commitData: any[]): DeveloperProfile {
+  // 커밋 데이터 처리 로직
   return {
-    workStyle: analyzeWorkStyle(commitData),
-    strengths: identifyStrengths(commitData),
-    growthAreas: identifyGrowthAreas(commitData),
-    collaborationPattern: analyzeCollaborationPattern(commitData),
-    communicationStyle: analyzeCommunicationStyle(commitData)
+    totalCommits: commitData.length,
+    contributors: [],
+    commitCategories: {},
+    activityPeriod: '6개월 동안 활동'
   };
 }
 
@@ -142,7 +141,11 @@ function analyzeCommunicationStyle(commitData: any[]): string {
 }
 
 function calculateCodeQualityScore(repoData: any): number {
-  return 75; // 예시 점수
+  // 객체가 없으면 기본값 반환
+  if (!repoData) return 50;
+  
+  // 실제 구현에서는 다양한 메트릭을 기반으로 계산해야 함
+  return 75;
 }
 
 function calculateScalabilityScore(repoData: any): number {
