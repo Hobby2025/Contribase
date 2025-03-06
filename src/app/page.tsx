@@ -111,7 +111,7 @@ export default function Home() {
                 <span className="text-primary-300"> 자동 변환</span>
               </h1>
               <p className="text-xl md:text-2xl text-primary-100">
-                규칙 기반 분석 시스템이 GitHub 기록을 분석하여
+                AI 기반 분석 시스템이 GitHub 기록을 분석하여
               </p>
               <p className="text-xl md:text-2xl text-primary-100">
                 개발자의 기술 스택과 기여도를 시각화합니다.
@@ -153,7 +153,7 @@ export default function Home() {
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4 text-primary-900">주요 기능</h2>
             <p className="text-xl text-primary-600 max-w-3xl mx-auto">
-              Contribase는 GitHub 저장소를 분석하여
+              Contribase는 GitHub 저장소를 AI로 분석하여
             </p>
             <p className="text-xl text-primary-600 max-w-3xl mx-auto">
               개발자의 기술 스택과 기여도를 시각화하고 포트폴리오로 변환합니다.
@@ -168,8 +168,8 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-primary-900">규칙 기반 분석</h3>
-              <p className="text-primary-600">규칙 기반 분석 시스템이 GitHub 저장소의 코드와 커밋 패턴을 분석하여 개발자의 기술 스택을 자동으로 식별합니다.</p>
+              <h3 className="text-xl font-semibold mb-3 text-primary-900">AI 기반 분석</h3>
+              <p className="text-primary-600">GPT-4 Mini를 활용한 고급 분석 시스템이 GitHub 저장소의 코드와 커밋 패턴을 분석하여 개발자의 기술 스택을 자동으로 식별합니다.</p>
             </div>
             
             {/* Feature 2 */}
@@ -180,7 +180,7 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-3 text-primary-900">시각화 대시보드</h3>
-              <p className="text-primary-600">다양한 차트와 그래프로 프로젝트별 기여도와 기술 스택을 한눈에 확인할 수 있습니다.</p>
+              <p className="text-primary-600">다양한 차트와 그래프로 프로젝트별 기여도와 기술 스택을 한눈에 확인할 수 있습니다. AI가 분석한 인사이트를 직관적으로 제공합니다.</p>
             </div>
             
             {/* Feature 3 */}
@@ -191,38 +191,38 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-3 text-primary-900">PDF 포트폴리오</h3>
-              <p className="text-primary-600">분석 결과를 바탕으로 전문적인 포트폴리오 PDF를 자동으로 생성하여 개발자의 역량을 효과적으로 표현합니다.</p>
+              <p className="text-primary-600">AI가 분석한 결과를 바탕으로 전문적인 포트폴리오 PDF를 자동으로 생성하여 개발자의 역량을 효과적으로 표현합니다.</p>
             </div>
           </div>
 
           {/* 향후 계획 섹션 */}
           <div className="mt-16 pt-16 border-t border-primary-200">
             <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold mb-4 text-primary-900">향후 개발 계획</h2>
+              <h2 className="text-3xl font-bold mb-4 text-primary-900">AI 기술 특징</h2>
               <p className="text-xl text-primary-600 max-w-3xl mx-auto">
-                규칙 기반 분석을 넘어, 다음 버전에서는 인공지능 기술을 도입하여 더욱 정교한 분석을 제공할 예정입니다.
+                GPT-4 Mini를 활용한 고급 분석 시스템으로 개발자의 역량을 정확하게 파악합니다.
               </p>
             </div>
             
             <div className="grid md:grid-cols-4 gap-6">
               <div className="bg-white p-6 rounded-lg shadow-sm border border-primary-100">
-                <h3 className="text-lg font-semibold mb-2 text-primary-900">AI 기반 커밋 분석</h3>
-                <p className="text-primary-600 text-sm">머신러닝 모델을 활용한 고도화된 커밋 메시지 분석</p>
+                <h3 className="text-lg font-semibold mb-2 text-primary-900">코드 품질 분석</h3>
+                <p className="text-primary-600 text-sm">AI가 코드 패턴을 분석하여 품질과 개선 사항을 제안합니다.</p>
               </div>
               
               <div className="bg-white p-6 rounded-lg shadow-sm border border-primary-100">
-                <h3 className="text-lg font-semibold mb-2 text-primary-900">코드 품질 평가</h3>
-                <p className="text-primary-600 text-sm">인공지능 기반 코드 품질 평가 및 개선 제안</p>
+                <h3 className="text-lg font-semibold mb-2 text-primary-900">개발 패턴 인식</h3>
+                <p className="text-primary-600 text-sm">개발자의 코딩 스타일과 패턴을 AI가 파악하여 분석합니다.</p>
               </div>
               
               <div className="bg-white p-6 rounded-lg shadow-sm border border-primary-100">
-                <h3 className="text-lg font-semibold mb-2 text-primary-900">개발자 프로필 생성</h3>
-                <p className="text-primary-600 text-sm">자연어 처리 기술을 활용한 맞춤형 개발자 프로필 자동 생성</p>
+                <h3 className="text-lg font-semibold mb-2 text-primary-900">프로젝트 인사이트</h3>
+                <p className="text-primary-600 text-sm">프로젝트의 특성과 목적을 AI가 자동으로 파악합니다.</p>
               </div>
               
               <div className="bg-white p-6 rounded-lg shadow-sm border border-primary-100">
-                <h3 className="text-lg font-semibold mb-2 text-primary-900">기술 트렌드 분석</h3>
-                <p className="text-primary-600 text-sm">최신 기술 트렌드와 개발자 역량을 연계한 분석</p>
+                <h3 className="text-lg font-semibold mb-2 text-primary-900">맞춤형 추천</h3>
+                <p className="text-primary-600 text-sm">개발자의 스킬셋에 맞는 개선점과 발전 방향을 제안합니다.</p>
               </div>
             </div>
           </div>
@@ -234,10 +234,10 @@ export default function Home() {
         <div className="container max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-6">개발자의 역량을 돋보이게 하세요</h2>
           <p className="text-xl mb-2 text-primary-100">
-            규칙 기반 분석 시스템이 GitHub 기록을 분석하여 객관적인 기술 프로필을 생성합니다.
+            GPT-4 Mini 기반 AI 분석 시스템이 GitHub 기록을 분석하여
           </p>
           <p className="text-xl mb-8 text-primary-100">
-            향후 인공지능 기술 도입으로 더욱 향상된 분석이 제공될 예정입니다.
+            객관적이고 정확한 기술 프로필을 생성합니다.
           </p>
           <div className="relative w-60 h-14 mx-auto">
             <Link
@@ -248,7 +248,6 @@ export default function Home() {
                 src="/images/github_login.webp" 
                 alt="GitHub 로고" 
                 fill
-                className="rounded-lg"
                 sizes="240px"
               />
             </Link>

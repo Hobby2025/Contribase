@@ -8,7 +8,7 @@ export default function About() {
         <div className="container max-w-5xl mx-auto px-4">
           <h1 className="text-4xl font-bold mb-6 text-center">Contribase 소개</h1>
           <p className="text-xl text-primary-100 text-center max-w-3xl mx-auto">
-            규칙 기반 GitHub 분석 서비스로 개발자들의 포트폴리오 생성을 자동화합니다.
+            AI 기반 GitHub 분석 서비스로 개발자들의 포트폴리오 생성을 자동화합니다.
           </p>
         </div>
       </div>
@@ -36,7 +36,7 @@ export default function About() {
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">해결책</h3>
               <div className="prose prose-lg dark:prose-invert">
                 <p className="dark:text-gray-300">
-                  Contribase는 규칙 기반 분석 시스템을 활용하여 GitHub 커밋 이력을 자동으로 분석함으로써, 개발자의 실제 기여도와 기술적 성장을 객관적으로 문서화합니다. 이를 통해 개발자들은 자신의 경험과 역량을 보다 정확하고 전문적으로 표현할 수 있습니다.
+                  Contribase는 GPT-4 Mini 기반 AI 분석 시스템을 활용하여 GitHub 저장소를 자동으로 분석함으로써, 개발자의 실제 기여도와 기술적 성장을 객관적으로 문서화합니다. 이를 통해 개발자들은 자신의 경험과 역량을 보다 정확하고 전문적으로 표현할 수 있습니다.
                 </p>
               </div>
             </div>
@@ -66,8 +66,8 @@ export default function About() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold mb-2 dark:text-white">신뢰성</h3>
-              <p className="text-gray-600 dark:text-gray-300">실제 커밋 기반 기여도 분석으로 객관적인 데이터를 제공합니다.</p>
+              <h3 className="text-xl font-bold mb-2 dark:text-white">정확성</h3>
+              <p className="text-gray-600 dark:text-gray-300">GPT-4 Mini 기반 AI 분석으로 객관적이고 정확한 데이터를 제공합니다.</p>
             </div>
             
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
@@ -77,7 +77,7 @@ export default function About() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold mb-2 dark:text-white">프라이버시</h3>
-              <p className="text-gray-600 dark:text-gray-300">클라이언트 중심 처리로 개인 정보를 안전하게 보호합니다.</p>
+              <p className="text-gray-600 dark:text-gray-300">안전한 API 통신으로 개인 정보와 코드를 안전하게 보호합니다.</p>
             </div>
             
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
@@ -87,7 +87,7 @@ export default function About() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold mb-2 dark:text-white">접근성</h3>
-              <p className="text-gray-600 dark:text-gray-300">누구나 쉽게 사용할 수 있도록 무료 서비스를 제공합니다.</p>
+              <p className="text-gray-600 dark:text-gray-300">누구나 쉽게 사용할 수 있도록 직관적인 인터페이스를 제공합니다.</p>
             </div>
           </div>
         </div>
@@ -126,15 +126,19 @@ export default function About() {
               <ul className="space-y-3">
                 <li className="flex items-center">
                   <span className="w-3 h-3 bg-primary-500 rounded-full mr-3"></span>
-                  <span className="dark:text-gray-300">RoBERTa-tiny (30MB) - 커밋 메시지 분석</span>
+                  <span className="dark:text-gray-300">GPT-4 Mini - 코드 및 프로젝트 분석</span>
                 </li>
                 <li className="flex items-center">
                   <span className="w-3 h-3 bg-primary-500 rounded-full mr-3"></span>
-                  <span className="dark:text-gray-300">CodeBERT-small (40MB) - 코드 변경 분석</span>
+                  <span className="dark:text-gray-300">OpenAI API - 자연어 처리</span>
                 </li>
                 <li className="flex items-center">
                   <span className="w-3 h-3 bg-primary-500 rounded-full mr-3"></span>
-                  <span className="dark:text-gray-300">클라이언트 & Edge 모델 최적화</span>
+                  <span className="dark:text-gray-300">API 서버 - 안전한 토큰 관리</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="w-3 h-3 bg-primary-500 rounded-full mr-3"></span>
+                  <span className="dark:text-gray-300">캐싱 시스템 - 분석 결과 효율적 관리</span>
                 </li>
               </ul>
             </div>
@@ -142,33 +146,33 @@ export default function About() {
         </div>
       </div>
 
-      {/* 향후 발전 계획 섹션 (새로 추가) */}
+      {/* AI 기능 설명 섹션 */}
       <div className="py-16 dark:bg-gray-900">
         <div className="container max-w-5xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">향후 발전 계획</h2>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">AI 분석 기능</h2>
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-4xl mx-auto mb-10 text-center">
-            현재 Contribase는 규칙 기반 분석 시스템을 사용하고 있으며, 향후 버전에서는 인공지능 기술을 도입하여 더욱 정확하고 인사이트 있는 분석을 제공할 계획입니다.
+            Contribase는 GPT-4 Mini 모델을 활용하여 정확하고 인사이트 있는 프로젝트 분석을 제공합니다.
           </p>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">AI 기반 커밋 분석</h3>
-              <p className="text-gray-600 dark:text-gray-300">머신러닝 모델을 활용하여 커밋 메시지의 의도와 패턴을 더 정확하게 파악합니다.</p>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">프로젝트 목적 파악</h3>
+              <p className="text-gray-600 dark:text-gray-300">AI가 프로젝트의 코드와 구조를 분석하여 목적과 주요 기능을 정확하게 도출합니다.</p>
             </div>
             
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">코드 품질 평가</h3>
-              <p className="text-gray-600 dark:text-gray-300">인공지능 기반 코드 품질 평가 시스템을 통해 코드 개선 방향을 제안합니다.</p>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">기술 스택 분석</h3>
+              <p className="text-gray-600 dark:text-gray-300">사용된 언어, 프레임워크, 라이브러리를 정확하게 식별하고 용도를 분석합니다.</p>
             </div>
             
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">개발자 프로필 생성</h3>
-              <p className="text-gray-600 dark:text-gray-300">자연어 처리 기술을 활용한 맞춤형 개발자 프로필을 자동으로 생성합니다.</p>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">인사이트 생성</h3>
+              <p className="text-gray-600 dark:text-gray-300">프로젝트와 개발자의 강점을 파악하여 의미 있는 인사이트를 제공합니다.</p>
             </div>
             
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">기술 트렌드 분석</h3>
-              <p className="text-gray-600 dark:text-gray-300">최신 기술 트렌드와 개발자의 역량을 연계한 심층 분석을 제공합니다.</p>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">보고서 자동화</h3>
+              <p className="text-gray-600 dark:text-gray-300">분석 결과를 바탕으로 전문적인 개발자 포트폴리오를 자동으로 생성합니다.</p>
             </div>
           </div>
         </div>
@@ -179,7 +183,7 @@ export default function About() {
         <div className="container max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-6">지금 시작해보세요</h2>
           <p className="text-xl mb-8 text-primary-100">
-            GitHub 계정을 연결하여 포트폴리오 생성을 자동화하고 개발자로서의 가치를 더 잘 표현하세요.
+            GitHub 계정을 연결하여 AI 기반 포트폴리오 생성을 경험하고 개발자로서의 가치를 더 잘 표현하세요.
           </p>
           <Link
             href="/auth/github"
