@@ -12,6 +12,7 @@ import {
   CodeQualityMetrics,
   AIProjectDefinition
 } from '@/components/analysis'
+import Image from 'next/image'
 
 // 우선순위 색상 매핑
 const PRIORITY_COLORS: Record<string, string> = {
@@ -26,6 +27,15 @@ interface AnalysisPageProps {
     owner: string;
     repo: string;
   }>;
+}
+
+// 코드 품질 데이터 인터페이스 정의
+interface CodeQualityData {
+  readability: number;
+  maintainability: number;
+  testCoverage: number;
+  documentation: number;
+  architecture: number;
 }
 
 export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
@@ -604,16 +614,23 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           </div>
 
           {/* 코드 품질 */}
+          {/* 코드 품질 메트릭 디버깅 로그 */}
+          {(() => { console.log('코드 품질 메트릭 상태:', analysis.codeQuality, analysis.codeQualityMetrics); return null; })()}
           <CodeQualityMetrics 
-            score={analysis.codeQuality}
-            codeQualityMetrics={{
-              readability: 70,
-              maintainability: 65,
-              testCoverage: 50,
-              documentation: 60,
-              architecture: 75
+            score={analysis.codeQuality || 70}
+            metrics={{
+              readability: typeof analysis.codeQualityMetrics === 'object' && 'readability' in analysis.codeQualityMetrics 
+                ? (analysis.codeQualityMetrics as any).readability : 70,
+              maintainability: typeof analysis.codeQualityMetrics === 'object' && 'maintainability' in analysis.codeQualityMetrics
+                ? (analysis.codeQualityMetrics as any).maintainability : 65,
+              testCoverage: typeof analysis.codeQualityMetrics === 'object' && 'testCoverage' in analysis.codeQualityMetrics
+                ? (analysis.codeQualityMetrics as any).testCoverage : 50,
+              documentation: typeof analysis.codeQualityMetrics === 'object' && 'documentation' in analysis.codeQualityMetrics
+                ? (analysis.codeQualityMetrics as any).documentation : 60,
+              architecture: typeof analysis.codeQualityMetrics === 'object' && 'architecture' in analysis.codeQualityMetrics
+                ? (analysis.codeQualityMetrics as any).architecture : 75
             }}
-            analysisType="personal"
+            analysisType="repository"
             userLogin={session?.user?.name || undefined}
           />
 
