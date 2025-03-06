@@ -592,7 +592,7 @@ function analyzeContributors(commits: CommitData[], userLogin?: string, userEmai
         commitCategories['리팩토링']++;
       } else if (msg.includes('test') || msg.includes('테스트')) {
         commitCategories['테스트']++;
-      } else if (msg.includes('add') || msg.includes('feature') || msg.includes('구현') || msg.includes('추가')) {
+      } else if (msg.includes('feat') || msg.includes('add') || msg.includes('feature') || msg.includes('구현') || msg.includes('추가')) {
         commitCategories['코드 추가']++;
       } else {
         commitCategories['기타']++;
