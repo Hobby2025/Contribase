@@ -712,10 +712,55 @@ export async function analyzeRepository(
         aiProjectType: gptAnalysis.projectType,
       },
       developerProfile,
-      techStack: gptAnalysis.techStack.map(tech => ({
-        ...tech,
-        usage: Math.round(tech.confidence * 100)
-      })),
+      techStack: gptAnalysis.techStack.map(tech => {
+        // 기술 스택 타입이 없는 경우 타입 추론 로직 추가
+        let enhancedTech = { ...tech };
+        
+        if (!enhancedTech.type) {
+          // 주요 언어 목록
+          const programmingLanguages = [
+            'JavaScript', 'TypeScript', 'Python', 'Java', 'C#', 'C++', 'C', 
+            'Go', 'Rust', 'Swift', 'Kotlin', 'PHP', 'Ruby', 'Scala', 'Dart',
+            'HTML', 'CSS', 'SCSS', 'SASS', 'Less', 'SQL', 'Shell', 'Bash'
+          ];
+          
+          // 주요 프레임워크와 라이브러리 목록
+          const frameworksAndLibraries = [
+            'React', 'Angular', 'Vue', 'Next.js', 'Nuxt.js', 'Express', 'Nest.js',
+            'Django', 'Flask', 'Spring', 'Laravel', 'Ruby on Rails', 'ASP.NET',
+            'jQuery', 'Bootstrap', 'Tailwind', 'Material-UI', 'Chakra UI',
+            'Redux', 'MobX', 'Zustand', 'Apollo', 'GraphQL', 'REST API',
+            'Node.js', 'Deno', 'TensorFlow', 'PyTorch', 'Pandas', 'NumPy',
+            'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'Firebase',
+            'MongoDB', 'PostgreSQL', 'MySQL', 'SQLite', 'Redis', 'Elasticsearch'
+          ];
+          
+          // 언어 목록에 있으면 'language' 타입으로 설정
+          if (programmingLanguages.includes(enhancedTech.name)) {
+            enhancedTech.type = 'language';
+          } 
+          // 프레임워크/라이브러리 목록에 있으면 'framework' 타입으로 설정
+          else if (frameworksAndLibraries.includes(enhancedTech.name)) {
+            enhancedTech.type = 'framework';
+          }
+          // 위 목록에 없는 경우 이름에 따라 추론
+          else if (enhancedTech.name.includes('.js') || 
+                   enhancedTech.name.includes('UI') || 
+                   enhancedTech.name.toLowerCase().includes('framework') ||
+                   enhancedTech.name.toLowerCase().includes('library')) {
+            enhancedTech.type = 'framework';
+          }
+          // 그 외에는 기본값으로 'tool' 설정
+          else {
+            enhancedTech.type = 'tool';
+          }
+        }
+        
+        return {
+          ...enhancedTech,
+          usage: Math.round(enhancedTech.confidence * 100)
+        };
+      }),
       domains: gptAnalysis.domains,
       characteristics: [], // 이 버전에서는 사용하지 않음
       developmentPattern: gptAnalysis.developmentPattern,

@@ -38,7 +38,9 @@ const handler = NextAuth({
     async redirect({ url, baseUrl }) {
       // state 매개변수에서 callbackUrl 추출 시도
       try {
-        const urlObj = new URL(url);
+        // 상대 경로인 경우 baseUrl과 결합
+        const fullUrl = url.startsWith('/') ? `${baseUrl}${url}` : url;
+        const urlObj = new URL(fullUrl);
         const state = urlObj.searchParams.get('state');
         
         if (state) {
@@ -58,6 +60,11 @@ const handler = NextAuth({
       // 기타 경우, URL이 baseUrl로 시작하면 그대로 사용
       if (url.startsWith(baseUrl)) {
         return url;
+      }
+      
+      // 상대 경로인 경우 baseUrl과 결합
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`;
       }
       
       // GitHub 인증 후 항상 대시보드로 리다이렉트

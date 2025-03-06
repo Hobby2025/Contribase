@@ -47,6 +47,9 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
     message?: string;
   }>({ progress: 0, stage: 'preparing', completed: false });
 
+  // 분석 재시작 방지를 위한 상태
+  const [analysisRequested, setAnalysisRequested] = useState(false);
+
   // 인증 상태 확인
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -56,6 +59,11 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
 
   // 저장소 분석 실행
   useEffect(() => {
+    // 이미 분석을 요청했으면 재실행하지 않음
+    if (analysisRequested) {
+      return;
+    }
+
     if (status === 'authenticated' && session?.accessToken) {
       // 저장소 분석 상태 확인 먼저 시도
       const checkExistingAnalysis = async () => {
@@ -71,28 +79,34 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
               setProgress(data);
               setAnalysis(data.result);
               setIsLoading(false);
+              setAnalysisRequested(true);
               return;
             }
           }
           // 기존 분석 결과가 없거나 완료되지 않은 경우에만 새 분석 시작
+          setAnalysisRequested(true);
           runAnalysis();
         } catch (err) {
           console.error('기존 분석 확인 오류:', err);
+          setAnalysisRequested(true);
           runAnalysis();
         }
       };
       
       checkExistingAnalysis();
     }
-  }, [status, session]);
+  }, [status, session, owner, repo, analysisRequested]);
   
   // 분석 진행 상태 확인
   useEffect(() => {
     if (isLoading) {
       let checkAttempts = 0;
       const maxCheckAttempts = 5;
+      let isCancelled = false;
       
       const checkProgress = async () => {
+        if (isCancelled) return;
+        
         try {
           if (checkAttempts >= maxCheckAttempts) {
             console.log(`최대 체크 시도 횟수(${maxCheckAttempts}회)에 도달했습니다.`);
@@ -111,8 +125,8 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
               }
             }
             
-            // 분석이 정말 필요한 경우에만 재시작
-            if (session?.accessToken) {
+            // 분석이 정말 필요한 경우에만 재시작, 이미 분석 요청이 있었는데 실패한 경우만 재시도
+            if (session?.accessToken && analysisRequested) {
               console.log('분석을 다시 시작합니다...');
               runAnalysis();
               checkAttempts = 0;
@@ -181,8 +195,10 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
                 // 재시도 트리거 (delay 추가)
                 setTimeout(() => {
                   if (session?.accessToken) {
-                    // 재시도 전 마지막으로 한 번 더 더 확인
+                    // 재시도 전 마지막으로 한 번 더 확인
                     const recheckAnalysis = async () => {
+                      if (isCancelled) return;
+                      
                       try {
                         const recheckResponse = await fetch(`/api/analysis/progress?repo=${encodeURIComponent(repoKey)}`);
                         if (recheckResponse.ok) {
@@ -195,11 +211,16 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
                             return;
                           }
                         }
-                        // 정말 필요한 경우에만 분석 재시작
-                        runAnalysis();
+                        // 1초 후에 다시 한번 확인하고 정말 필요한 경우에만 분석 재시작
+                        setTimeout(() => {
+                          if (isCancelled) return;
+                          runAnalysis();
+                        }, 1000);
                       } catch (err) {
                         console.error('재확인 오류:', err);
-                        runAnalysis();
+                        if (!isCancelled) {
+                          runAnalysis();
+                        }
                       }
                     };
                     recheckAnalysis();
@@ -235,18 +256,44 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
       
       return () => {
         clearInterval(intervalId);
+        isCancelled = true;
       };
     }
   }, [isLoading, owner, repo, session]);
 
   // 분석 실행 함수
   const runAnalysis = async () => {
+    // 이미 분석 중이면 중복 실행하지 않음
+    if (isLoading && progress.progress > 0) {
+      console.log('분석이 이미 진행 중입니다. 중복 실행하지 않습니다.');
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     
     try {
       if (!session?.accessToken) {
         throw new Error('인증 토큰이 없습니다.');
+      }
+      
+      // 이미 분석이 완료된 상태인지 한번 더 확인
+      const repoKey = `${owner}/${repo}`;
+      try {
+        const existingCheck = await fetch(`/api/analysis/progress?repo=${encodeURIComponent(repoKey)}`);
+        if (existingCheck.ok) {
+          const checkData = await existingCheck.json();
+          if (checkData.completed && checkData.result) {
+            console.log('분석이 이미 완료되었습니다. 중복 요청하지 않습니다.');
+            setProgress(checkData);
+            setAnalysis(checkData.result);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (checkErr) {
+        console.error('기존 분석 결과 확인 오류:', checkErr);
+        // 오류 발생 시에도 계속 진행 (새 분석 시도)
       }
       
       // API 엔드포인트를 통해 분석 요청
@@ -444,7 +491,10 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
                 .filter((feature: { importance: number }) => feature.importance >= 0.7)
                 .map((feature: { title: string }) => feature.title)}
               technologies={analysis.techStack
-                .filter((tech: { confidence: number }) => tech.confidence >= 0.8)
+                .filter((tech: { confidence: number }) => {
+                  // 신뢰도가 높은 모든 기술 스택 포함 (언어, 프레임워크, 라이브러리 등)
+                  return tech.confidence >= 0.7;
+                })
                 .map((tech: { name: string }) => tech.name)}
             />
           )}

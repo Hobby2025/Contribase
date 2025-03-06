@@ -9,6 +9,9 @@ import ScrollToTop from '@/components/ScrollToTop'
 export const metadata: Metadata = {
   title: 'Contribase',
   description: 'GitHub 활동을 분석하여 전문적인 개발자 포트폴리오를 자동으로 생성합니다',
+  metadataBase: new URL(process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}` 
+    : process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   icons: {
     icon: [
       { url: '/icons/favicon-16x16.png', sizes: '16x16', type: 'image/png' },

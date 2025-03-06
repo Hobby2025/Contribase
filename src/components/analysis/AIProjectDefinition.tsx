@@ -70,7 +70,7 @@ export default function AIProjectDefinition({
       </div>
       
       <div className="mb-5">
-        <h3 className="text-md font-medium text-gray-800 dark:text-gray-200 mb-2">주요 기술</h3>
+        <h3 className="text-md font-medium text-gray-800 dark:text-gray-200 mb-2">기술 스택</h3>
         <div className="flex flex-wrap gap-2">
           {technologies.map((tech, index) => (
             <span 

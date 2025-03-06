@@ -256,7 +256,7 @@ export default function Dashboard() {
     if (isLoading) {
       // 스켈레톤 UI 렌더링 - 이 부분만 사용하고 다른 스켈레톤은 제거
       return (
-        <div className="min-h-[650px] flex flex-col">
+        <div className="min-h-[450px] flex flex-col">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 flex-1 min-h-[500px]">
             {[...Array(6)].map((_, index) => (
               <div 
