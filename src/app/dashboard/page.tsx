@@ -251,60 +251,30 @@ export default function Dashboard() {
     setCurrentPage(1);
   }, [activeTab, searchTerm]);
 
-  // 로딩 중이거나 인증되지 않은 경우 로딩 표시
-  if (status === 'loading' || status === 'unauthenticated') {
-    return (
-      <div className="container max-w-6xl mx-auto px-4 py-8">
-        {/* 스켈레톤 헤더 */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="h-10 w-52 bg-gray-200/60 rounded animate-pulse"></div>
-          <div className="h-10 w-32 bg-gray-200/60 rounded animate-pulse"></div>
-        </div>
-        
-        {/* 스켈레톤 검색 필드 */}
-        <div className="relative mb-4">
-          <div className="h-10 w-full bg-gray-200/60 rounded animate-pulse"></div>
-        </div>
-        
-        {/* 스켈레톤 드롭다운 */}
-        <div className="mb-6">
-          <div className="h-10 w-full bg-gray-200/60 rounded animate-pulse"></div>
-        </div>
-        
-        {/* 스켈레톤 저장소 목록 */}
+  // 저장소 목록 렌더링
+  const renderRepositories = () => {
+    if (isLoading) {
+      // 스켈레톤 UI 렌더링 - 이 부분만 사용하고 다른 스켈레톤은 제거
+      return (
         <div className="min-h-[650px] flex flex-col">
-          <div className="grid gap-6 md:grid-cols-2 flex-1 min-h-[500px]">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 flex-1 min-h-[500px]">
             {[...Array(6)].map((_, index) => (
               <div 
                 key={`skeleton-${index}`} 
-                className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-sm transition-shadow"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700"
               >
-                <div className="flex items-start">
-                  <div className="mr-4 flex-shrink-0">
-                    <div className="rounded-full h-12 w-12 bg-gray-200/60 animate-pulse"></div>
-                  </div>
-                  <div className="min-w-0 flex-1 overflow-hidden">
-                    <div className="h-5 bg-gray-200/60 rounded w-3/4 mb-2 animate-pulse"></div>
-                    <div className="h-4 bg-gray-200/60 rounded w-full mt-2 animate-pulse"></div>
-                    <div className="h-4 bg-gray-200/60 rounded w-2/3 mt-1 animate-pulse"></div>
-                    <div className="flex items-center mt-2">
-                      <div className="flex items-center mr-3">
-                        <div className="h-3 w-3 rounded-full bg-gray-200/60 mr-1.5 animate-pulse"></div>
-                        <div className="h-4 w-16 bg-gray-200/60 rounded animate-pulse"></div>
-                      </div>
-                      <div className="flex items-center mr-3">
-                        <div className="h-4 w-4 bg-gray-200/60 rounded mr-1.5 animate-pulse"></div>
-                        <div className="h-4 w-8 bg-gray-200/60 rounded animate-pulse"></div>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="h-4 w-4 bg-gray-200/60 rounded mr-1.5 animate-pulse"></div>
-                        <div className="h-4 w-8 bg-gray-200/60 rounded animate-pulse"></div>
-                      </div>
-                    </div>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2 animate-pulse"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2 animate-pulse"></div>
                   </div>
                 </div>
-                <div className="mt-4 flex justify-end">
-                  <div className="h-8 w-20 bg-gray-200/60 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-3 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6 mb-6 animate-pulse"></div>
+                <div className="flex justify-between items-center">
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
                 </div>
               </div>
             ))}
@@ -313,12 +283,313 @@ export default function Dashboard() {
           {/* 스켈레톤 페이지네이션 */}
           <div className="mt-6 flex justify-center">
             <div className="flex gap-2">
-              {[...Array(5)].map((_, index) => (
-                <div key={`page-${index}`} className="w-10 h-10 bg-gray-200/60 rounded animate-pulse"></div>
+              {/* 이전 페이지 버튼 */}
+              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              {/* 최대 3개의 페이지 번호만 표시 */}
+              {[...Array(3)].map((_, index) => (
+                <div key={`page-${index}`} className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
               ))}
+              {/* 다음 페이지 버튼 */}
+              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
             </div>
           </div>
         </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                {error}
+              </h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                <p>다시 시도하거나 GitHub 계정 권한을 확인해주세요.</p>
+              </div>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setReloadKey(prev => prev + 1);
+                  }}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 dark:text-red-200 dark:bg-red-900 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  <svg className="mr-2 -ml-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  다시 시도
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (repositories.length === 0) {
+      return (
+        <div className="text-center py-12 px-4">
+          <svg className="mx-auto h-16 w-16 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-gray-100">저장소가 없습니다</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">GitHub에 저장소를 생성하거나 권한을 확인해주세요.</p>
+          <div className="mt-6">
+            <button
+              onClick={() => setReloadKey(prev => prev + 1)}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              새로고침
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // 필터링된 저장소
+    const filteredRepos = repositories
+      .filter(repo => 
+        // 검색어로 필터링
+        repo.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        repo.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .filter(repo => {
+        // 탭으로 필터링
+        if (activeTab === 'all') return true;
+        if (activeTab === 'personal') return repo.owner.login === session?.user?.name;
+        // 조직 필터링
+        return activeTab === repo.owner.login;
+      });
+
+    // 페이지네이션 계산
+    const indexOfLastRepo = currentPage * reposPerPage;
+    const indexOfFirstRepo = indexOfLastRepo - reposPerPage;
+    const currentRepos = filteredRepos.slice(indexOfFirstRepo, indexOfLastRepo);
+    const totalPages = Math.ceil(filteredRepos.length / reposPerPage);
+
+    if (filteredRepos.length === 0) {
+      return (
+        <div className="text-center py-10 px-4">
+          <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-gray-100">검색 결과 없음</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            '{searchTerm}' 검색어와 일치하는 저장소가 없습니다.
+          </p>
+          <div className="mt-6">
+            <button
+              onClick={() => setSearchTerm('')}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              검색어 지우기
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {currentRepos.map(repo => (
+            <div 
+              key={repo.id} 
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow duration-200"
+            >
+              <div className="flex items-center space-x-3 mb-4">
+                <Image 
+                  src={repo.owner.avatar_url} 
+                  alt={repo.owner.login}
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700"
+                />
+                <div>
+                  <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 line-clamp-1">
+                    {repo.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {repo.owner.login}
+                  </p>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 line-clamp-2 min-h-[2.5rem]">
+                {repo.description || '설명 없음'}
+              </p>
+              
+              <div className="flex flex-wrap items-center gap-4 mb-4">
+                {repo.language && (
+                  <div className="flex items-center">
+                    <span 
+                      className="h-3 w-3 rounded-full mr-1"
+                      style={{ backgroundColor: getLanguageColor(repo.language) }}
+                    ></span>
+                    <span className="text-xs text-gray-600 dark:text-gray-300">{repo.language}</span>
+                  </div>
+                )}
+                <div className="flex items-center text-xs text-gray-600 dark:text-gray-300">
+                  <svg className="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                  {repo.stargazers_count}
+                </div>
+                <div className="flex items-center text-xs text-gray-600 dark:text-gray-300">
+                  <svg className="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                  {repo.forks_count}
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => analyzeRepository(repo.owner.login, repo.name)}
+                  className="flex items-center text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 py-2 px-4 rounded-lg transition-colors"
+                >
+                  <svg className="mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  분석하기
+                </button>
+                <a
+                  href={repo.html_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <svg className="mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  GitHub
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* 페이지네이션 */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-8">
+            <nav className="flex items-center">
+              <button
+                onClick={() => paginate(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className={`px-3 py-1 rounded-l-md border ${currentPage === 1 
+                  ? 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed' 
+                  : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+              >
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              {/* 페이지 버튼 - 모바일 친화적으로 수정 */}
+              {(() => {
+                // 화면에 보여줄 페이지 버튼 수 계산 로직
+                let pages = [];
+                
+                // 총 페이지 수가 5 이하면 모든 페이지 표시
+                if (totalPages <= 5) {
+                  pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                } else {
+                  // 현재 페이지가 처음/끝에 가까울 때 처리
+                  if (currentPage <= 3) {
+                    // 1, 2, 3, 4, ..., totalPages
+                    pages = [1, 2, 3, 4, 'ellipsis', totalPages];
+                  } else if (currentPage >= totalPages - 2) {
+                    // 1, ..., totalPages-3, totalPages-2, totalPages-1, totalPages
+                    pages = [1, 'ellipsis', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+                  } else {
+                    // 1, ..., currentPage-1, currentPage, currentPage+1, ..., totalPages
+                    pages = [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages];
+                  }
+                }
+                
+                return pages.map((page, index) => {
+                  // 생략 부호 처리
+                  if (page === 'ellipsis') {
+                    return (
+                      <span
+                        key={`ellipsis-${index}`}
+                        className="px-2 py-1 border-t border-b bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                      >
+                        ...
+                      </span>
+                    );
+                  }
+                  
+                  // 일반 페이지 번호 버튼
+                  const isActive = page === currentPage;
+                  return (
+                    <button
+                      key={`page-${page}`}
+                      onClick={() => paginate(page as number)}
+                      className={`px-3 py-1 border-t border-b ${isActive 
+                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 font-medium' 
+                        : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                    >
+                      {page}
+                    </button>
+                  );
+                });
+              })()}
+              
+              <button
+                onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1 rounded-r-md border ${currentPage === totalPages 
+                  ? 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed' 
+                  : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+              >
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </nav>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // 로딩 중이거나 인증되지 않은 경우 로딩 표시
+  if (status === 'loading' || status === 'unauthenticated') {
+    return (
+      <div className="container max-w-6xl mx-auto px-4 py-8">
+        {/* 스켈레톤 헤더 */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="h-10 w-52 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+          <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        </div>
+        
+        {/* 스켈레톤 검색 필드 */}
+        <div className="relative mb-4">
+          <div className="h-10 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        </div>
+        
+        {/* 스켈레톤 드롭다운 */}
+        <div className="mb-6">
+          <div className="h-10 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        </div>
+        
+        {/* 저장소 목록 스켈레톤 - renderRepositories 함수 재사용 */}
+        {renderRepositories()}
       </div>
     )
   }
@@ -443,236 +714,7 @@ export default function Dashboard() {
       )}
 
       {/* 저장소 목록 */}
-      {isLoading ? (
-        <div className="min-h-[650px] flex flex-col">
-          <div className="grid gap-6 md:grid-cols-2 flex-1 min-h-[500px]">
-            {[...Array(6)].map((_, index) => (
-              <div 
-                key={`skeleton-${index}`} 
-                className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-sm transition-shadow"
-              >
-                <div className="flex items-start">
-                  <div className="mr-4 flex-shrink-0">
-                    <div className="rounded-full h-12 w-12 bg-gray-200/60 animate-pulse"></div>
-                  </div>
-                  <div className="min-w-0 flex-1 overflow-hidden">
-                    <div className="h-5 bg-gray-200/60 rounded w-3/4 mb-2 animate-pulse"></div>
-                    <div className="h-4 bg-gray-200/60 rounded w-full mt-2 animate-pulse"></div>
-                    <div className="h-4 bg-gray-200/60 rounded w-2/3 mt-1 animate-pulse"></div>
-                    <div className="flex items-center mt-2">
-                      <div className="flex items-center mr-3">
-                        <div className="h-3 w-3 rounded-full bg-gray-200/60 mr-1.5 animate-pulse"></div>
-                        <div className="h-4 w-16 bg-gray-200/60 rounded animate-pulse"></div>
-                      </div>
-                      <div className="flex items-center mr-3">
-                        <div className="h-4 w-4 bg-gray-200/60 rounded mr-1.5 animate-pulse"></div>
-                        <div className="h-4 w-8 bg-gray-200/60 rounded animate-pulse"></div>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="h-4 w-4 bg-gray-200/60 rounded mr-1.5 animate-pulse"></div>
-                        <div className="h-4 w-8 bg-gray-200/60 rounded animate-pulse"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <div className="h-8 w-20 bg-gray-200/60 rounded animate-pulse"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {/* 스켈레톤 페이지네이션 */}
-          <div className="mt-6 flex justify-center">
-            <div className="flex gap-2">
-              {[...Array(5)].map((_, index) => (
-                <div key={`page-${index}`} className="w-10 h-10 bg-gray-200/60 rounded animate-pulse"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : filteredRepositories.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-          <svg className="h-12 w-12 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-          </svg>
-          <p className="text-lg">표시할 저장소가 없습니다</p>
-          {activeTab !== 'all' && (
-            <p className="mt-2 text-sm">{activeTab} 조직에 저장소가 없거나 접근 권한이 없습니다.</p>
-          )}
-        </div>
-      ) : (
-        <>
-          <div className="grid gap-6 md:grid-cols-2">
-            {currentRepos.map((repo) => (
-              <div 
-                key={`${repo.owner.login}-${repo.name}`} 
-                className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start">
-                  <div className="mr-4 flex-shrink-0">
-                    <Image
-                      src={repo.owner.avatar_url}
-                      alt={repo.owner.login}
-                      width={48}
-                      height={48}
-                      className="rounded-full"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-medium text-gray-900 truncate">
-                      <Link 
-                        href={repo.html_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        {repo.owner.login === session?.user?.name ? (
-                          <span>내 저장소 / {repo.name}</span>
-                        ) : (
-                          <span>{repo.full_name}</span>
-                        )}
-                      </Link>
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-500 line-clamp-2">
-                      {repo.description || '설명 없음'}
-                    </p>
-                    <div className="mt-2 flex items-center text-sm text-gray-500">
-                      {repo.language && (
-                        <span className="mr-3 flex items-center">
-                          <span className="mr-1.5 h-3 w-3 rounded-full" style={{ backgroundColor: getLanguageColor(repo.language) }}></span>
-                          {repo.language}
-                        </span>
-                      )}
-                      <span className="mr-3 flex items-center">
-                        <svg className="mr-1.5 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        {repo.stargazers_count}
-                      </span>
-                      <span className="flex items-center">
-                        <svg className="mr-1.5 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                        {repo.forks_count}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <button
-                    onClick={() => analyzeRepository(repo.owner.login, repo.name)}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
-                  >
-                    분석하기
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {/* 페이지네이션 */}
-          {totalPages > 1 && (
-            <div className="mt-auto pt-6 h-[100px]">
-              {totalPages > 1 && (
-                <div className="flex justify-center overflow-x-auto pb-2 max-w-full">
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px flex-wrap justify-center" aria-label="Pagination">
-                    <button
-                      onClick={() => paginate(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                        currentPage === 1 
-                          ? 'text-gray-300 cursor-not-allowed' 
-                          : 'text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className="sr-only">이전</span>
-                      <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                    
-                    {/* 첫번째 페이지 */}
-                    {totalPages > 3 && currentPage > 3 && (
-                      <>
-                        <button
-                          onClick={() => paginate(1)}
-                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                        >
-                          1
-                          </button>
-                        {currentPage > 4 && (
-                          <span className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                            ...
-                          </span>
-                        )}
-                      </>
-                    )}
-                    
-                    {/* 페이지 번호 (모바일에 최적화) */}
-                    {Array.from({ length: totalPages }, (_, i) => i + 1)
-                      .filter(num => {
-                        // 현재 페이지 주변 2개 페이지만 표시 (또는 총 페이지가 5개 이하면 모두 표시)
-                        if (totalPages <= 5) return true;
-                        return Math.abs(num - currentPage) <= 1;
-                      })
-                      .map((number) => (
-                        <button
-                          key={number}
-                          onClick={() => paginate(number)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                            currentPage === number
-                              ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
-                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                          }`}
-                        >
-                          {number}
-                        </button>
-                      ))}
-                    
-                    {/* 마지막 페이지 */}
-                    {totalPages > 3 && currentPage < totalPages - 2 && (
-                      <>
-                        {currentPage < totalPages - 3 && (
-                          <span className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                            ...
-                          </span>
-                        )}
-                        <button
-                          onClick={() => paginate(totalPages)}
-                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                        >
-                          {totalPages}
-                        </button>
-                      </>
-                    )}
-                    
-                    <button
-                      onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                      className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                        currentPage === totalPages 
-                          ? 'text-gray-300 cursor-not-allowed' 
-                          : 'text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className="sr-only">다음</span>
-                      <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </nav>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* 결과 요약 */}
-          <div className="mt-4 text-sm text-gray-500 text-center">
-            전체 {filteredRepositories.length}개 중 {indexOfFirstRepo + 1}-{Math.min(indexOfLastRepo, filteredRepositories.length)}개 표시
-          </div>
-        </>
-      )}
+      {renderRepositories()}
     </div>
   )
 }

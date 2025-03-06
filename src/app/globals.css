@@ -1,0 +1,31 @@
+/* 프로그레스 바 애니메이션 */
+@keyframes progressPulse {
+  0% {
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, rgba(79, 70, 229, 0.1) 0%, rgba(79, 70, 229, 0.8) 50%, rgba(79, 70, 229, 0.1) 100%);
+  }
+  100% {
+    transform: translateX(100%);
+    background: linear-gradient(90deg, rgba(79, 70, 229, 0.1) 0%, rgba(79, 70, 229, 0.8) 50%, rgba(79, 70, 229, 0.1) 100%);
+  }
+}
+
+.animate-progress-pulse {
+  animation: progressPulse 1.5s infinite ease-in-out;
+}
+
+/* 점 애니메이션 */
+@keyframes dotPulse {
+  0% { opacity: 0.2; }
+  20% { opacity: 1; }
+  100% { opacity: 0.2; }
+}
+
+.dot-1, .dot-2, .dot-3 {
+  animation: dotPulse 1.4s infinite;
+  animation-fill-mode: both;
+}
+
+.dot-1 { animation-delay: 0.0s; }
+.dot-2 { animation-delay: 0.2s; }
+.dot-3 { animation-delay: 0.4s; } 

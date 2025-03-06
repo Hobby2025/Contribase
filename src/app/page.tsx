@@ -10,7 +10,9 @@ export default function Home() {
   useEffect(() => {
     // 페이지 로드가 완료되면 로딩 상태 해제
     const handleLoad = () => {
-      setIsLoading(false);
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 300); // 부드러운 전환을 위한 짧은 지연
     };
 
     // 페이지가 이미 로드된 경우
@@ -20,21 +22,15 @@ export default function Home() {
       window.addEventListener('load', handleLoad);
     }
 
-    // 최대 2초 후에는 무조건 로딩 상태 해제
-    const loadTimer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-
     return () => {
       window.removeEventListener('load', handleLoad);
-      clearTimeout(loadTimer);
     };
   }, []);
 
   if (isLoading) {
     return (
       <>
-        {/* 스켈레톤 UI - Hero Section */}
+        {/* 개선된 스켈레톤 UI - Hero Section */}
         <section className="bg-primary-700 text-primary-50">
           <div className="container py-20 max-w-7xl mx-auto">
             <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -45,6 +41,7 @@ export default function Home() {
                 
                 {/* 스켈레톤 설명 */}
                 <div className="h-8 bg-primary-600/50 rounded-lg w-full animate-pulse"></div>
+                <div className="h-8 bg-primary-600/50 rounded-lg w-4/5 animate-pulse"></div>
                 
                 {/* 스켈레톤 버튼 */}
                 <div className="pt-4 flex flex-col sm:flex-row gap-4">

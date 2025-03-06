@@ -5,6 +5,9 @@ const packageJson = require('./package.json')
 const nextConfig = {
   env: {
     APP_VERSION: packageJson.version,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+    DEFAULT_ANALYSIS_DEPTH: process.env.DEFAULT_ANALYSIS_DEPTH,
   },
   reactStrictMode: true,
   images: {

@@ -12,7 +12,7 @@ export const GITHUB_API_URL = 'https://api.github.com';
 
 // 모델 관련 설정
 export const MODEL_CONFIG = {
-  ANALYSIS_MODE: 'rule-based',
+  ANALYSIS_MODE: 'ai',
   MAX_BATCH_SIZE: parseInt(process.env.MAX_BATCH_SIZE || '50', 10),
   TIMEOUT_MS: parseInt(process.env.MODEL_TIMEOUT_MS || '30000', 10)
 };

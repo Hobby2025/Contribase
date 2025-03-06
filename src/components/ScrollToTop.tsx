@@ -8,14 +8,22 @@ export default function ScrollToTop() {
   // 스크롤 위치에 따라 버튼 표시 여부 결정
   useEffect(() => {
     const toggleVisibility = () => {
-      setIsVisible(window.scrollY > 300);
+      if (window.scrollY > 300) {
+        setIsVisible(true);
+      } else {
+        setIsVisible(false);
+      }
     };
 
     window.addEventListener('scroll', toggleVisibility);
+    
+    // 초기 스크롤 위치 확인
+    toggleVisibility();
+
     return () => window.removeEventListener('scroll', toggleVisibility);
   }, []);
 
-  // 페이지 상단으로 스크롤하는 함수
+  // 맨 위로 스크롤
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -23,17 +31,17 @@ export default function ScrollToTop() {
     });
   };
 
-  if (!isVisible) return null;
-  
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-8 right-8 p-3 rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 transition-all duration-300 z-50 animate-pulse-slow hover:animate-none hover:scale-110 scale-75"
-      aria-label="페이지 상단으로 이동"
+      className={`fixed right-6 bottom-6 p-3 rounded-full bg-primary-600 hover:bg-primary-700 text-white shadow-lg z-50 transition-all duration-300 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
+      }`}
+      aria-label="맨 위로 스크롤"
     >
       <svg 
         xmlns="http://www.w3.org/2000/svg" 
-        className="h-5 w-5" 
+        className="h-6 w-6" 
         fill="none" 
         viewBox="0 0 24 24" 
         stroke="currentColor"
@@ -42,7 +50,7 @@ export default function ScrollToTop() {
           strokeLinecap="round" 
           strokeLinejoin="round" 
           strokeWidth={2} 
-          d="M5 15l7-7 7 7" 
+          d="M5 10l7-7m0 0l7 7m-7-7v18" 
         />
       </svg>
     </button>
