@@ -5,7 +5,7 @@ import PieChart from '@/components/charts/PieChart'
 
 // 상수 값
 const CATEGORY_COLORS = {
-  '기능': 'bg-emerald-200 text-emerald-800',
+  '코드 추가': 'bg-emerald-200 text-emerald-800',
   '버그 수정': 'bg-red-100 text-red-800',
   '리팩토링': 'bg-blue-100 text-blue-800',
   '문서화': 'bg-amber-100 text-amber-800',
@@ -16,7 +16,7 @@ const CATEGORY_COLORS = {
 
 // 카테고리 차트 색상 값 (차분한 파스텔톤)
 const CATEGORY_COLOR_VALUES = {
-  '기능': 'rgba(16, 185, 129, 0.7)',    // 더 선명한 에메랄드 색상
+  '코드 추가': 'rgba(16, 185, 129, 0.7)',    // 더 선명한 에메랄드 색상
   '버그 수정': 'rgba(248, 113, 113, 0.7)',   // 옅은 빨강
   '리팩토링': 'rgba(96, 165, 250, 0.7)',    // 옅은 파랑
   '문서화': 'rgba(251, 191, 36, 0.7)',     // 옅은 황색
@@ -27,7 +27,7 @@ const CATEGORY_COLOR_VALUES = {
 
 // 카테고리 프로그레스 바 색상 (차분한 파스텔톤)
 const CATEGORY_PROGRESS_COLORS = {
-  '기능': 'bg-emerald-500',
+  '코드 추가': 'bg-emerald-500',
   '버그 수정': 'bg-red-400',
   '리팩토링': 'bg-blue-400',
   '문서화': 'bg-amber-400',

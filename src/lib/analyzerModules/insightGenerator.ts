@@ -273,110 +273,67 @@ export function generateRecommendations(
   description: string;
   priority: 'high' | 'medium' | 'low';
 }[] {
+  // 프로젝트 특성이 제거되었으므로, 이에 의존하는 로직 제거
+  // 기본 추천만 생성
   const recommendations: {
     title: string;
     description: string;
     priority: 'high' | 'medium' | 'low';
   }[] = [];
   
-  // 기술 스택 분석
-  const techNames = techStack.map(t => t.name.toLowerCase());
-  const hasTestingFrameworks = techNames.some(name => 
-    name.includes('test') || name.includes('jest') || name.includes('junit') || name.includes('pytest')
-  );
-  
-  const hasModernFrameworks = techNames.some(name => 
-    name.includes('react') || name.includes('vue') || name.includes('angular') || 
-    name.includes('next') || name.includes('nuxt')
-  );
-  
-  const hasTypescript = techNames.some(name => name.includes('typescript'));
-  const hasCI = techNames.some(name => 
-    name.includes('github actions') || name.includes('gitlab ci') || name.includes('jenkins') || 
-    name.includes('travis') || name.includes('circleci')
-  );
-  
-  // 테스트 관련 추천
-  if (!hasTestingFrameworks) {
+  // 웹 프로젝트 권장 사항
+  if (domains.includes('웹 개발')) {
     recommendations.push({
-      title: '자동화된 테스트 도입',
-      description: '단위 테스트, 통합 테스트, E2E 테스트 등 자동화된 테스트를 도입하여 코드 품질과 안정성을 향상시키세요. Jest, Mocha, Jasmine 같은 프레임워크를 활용할 수 있습니다.',
-      priority: 'high'
+      title: '웹 성능 최적화',
+      description: '자산 최적화, 코드 분할, 레이지 로딩 등의 기법을 적용하여 웹 애플리케이션의 성능을 개선하세요.',
+      priority: 'medium' as const
+    });
+    
+    recommendations.push({
+      title: '웹 접근성 개선',
+      description: 'ARIA 속성, 시맨틱 HTML, 키보드 네비게이션을 구현하여 다양한 사용자가 이용할 수 있도록 접근성을 개선하세요.',
+      priority: 'medium' as const
     });
   }
   
-  // 타입스크립트 관련 추천
-  if (!hasTypescript && (domains.includes('웹 개발') || domains.includes('프론트엔드'))) {
+  // 모바일 앱 권장 사항
+  if (domains.includes('모바일 개발')) {
     recommendations.push({
-      title: 'TypeScript 도입 검토',
-      description: 'JavaScript 프로젝트에 TypeScript를 도입하여 타입 안정성을 확보하고 개발자 경험을 향상시키세요. 정적 타입 지정을 통해 버그를 줄이고 코드 가독성을 높일 수 있습니다.',
-      priority: 'medium'
+      title: '반응형 디자인 적용',
+      description: '다양한 화면 크기와 해상도에 대응할 수 있도록 반응형 디자인을 구현하세요.',
+      priority: 'high' as const
     });
   }
   
-  // CI/CD 관련 추천
-  if (!hasCI) {
+  // 백엔드 프로젝트 추천
+  if (domains.includes('백엔드 개발')) {
     recommendations.push({
-      title: 'CI/CD 파이프라인 구축',
-      description: 'GitHub Actions, GitLab CI, Jenkins 등을 활용하여 지속적 통합 및 배포 파이프라인을 구축하세요. 자동화된 빌드, 테스트, 배포 과정을 통해 개발 효율성을 높이고 안정적인 릴리스를 지원합니다.',
-      priority: 'medium'
+      title: '서버 보안 강화',
+      description: 'HTTPS, 입력 검증, XSS/CSRF 방어 등 보안 모범 사례를 적용하여 애플리케이션 보안을 강화하세요.',
+      priority: 'high' as const
     });
   }
   
-  // 프로젝트 특성 기반 추천
-  const focusesOnFunctionality = characteristics.some(c => 
-    c.type === '개발 중점' && c.description.includes('기능 개발')
-  );
-  
-  if (focusesOnFunctionality) {
-    recommendations.push({
-      title: '코드 리팩토링 및 품질 개선',
-      description: '기능 개발에 중점을 둔 프로젝트에 리팩토링 시간을 투자하여 코드 품질과 유지보수성을 향상시키세요. 코드 분석 도구와 린터를 활용하여 기술 부채를 관리할 수 있습니다.',
-      priority: 'medium'
-    });
-  }
-  
-  // 도메인 기반 추천
-  if (domains.includes('웹 개발') || domains.includes('프론트엔드')) {
-    if (!hasModernFrameworks) {
-      recommendations.push({
-        title: '모던 프론트엔드 프레임워크 도입',
-        description: 'React, Vue, Angular와 같은 모던 프론트엔드 프레임워크를 도입하여 사용자 경험과 개발 생산성을 향상시키세요. 컴포넌트 기반 개발 방식으로 코드 재사용성과 유지보수성을 높일 수 있습니다.',
-        priority: 'medium'
-      });
-    } else {
-      recommendations.push({
-        title: '웹 성능 최적화',
-        description: '코드 분할, 지연 로딩, 이미지 최적화, 캐싱 전략 등을 적용하여 웹 애플리케이션의 성능을 개선하세요. Lighthouse나 WebPageTest와 같은 도구를 활용하여 성능을 측정하고 개선점을 찾을 수 있습니다.',
-        priority: 'medium'
-      });
-    }
-  }
-  
-  if (domains.includes('백엔드') || domains.includes('서버')) {
-    recommendations.push({
-      title: 'API 문서화 자동화',
-      description: 'Swagger, OpenAPI, GraphQL과 같은 도구를 활용하여 API 문서를 자동화하고 표준화하세요. 명확한 문서는 프론트엔드 개발자와의 협업을 원활하게 하고 API 사용성을 높입니다.',
-      priority: 'medium'
-    });
-  }
-  
-  // 일반적인 추천 사항 (항상 포함)
+  // 기본 추천 (모든 프로젝트에 적용)
   recommendations.push({
-    title: '보안 검토 및 개선',
-    description: '정기적인 보안 검토를 통해 잠재적인 취약점을 식별하고 대응 방안을 마련하세요. OWASP Top 10과 같은 가이드라인을 참고하여 보안 모범 사례를 적용할 수 있습니다.',
-    priority: 'high'
+    title: '테스트 커버리지 확대',
+    description: '단위 테스트, 통합 테스트를 추가하여 코드 변경에 따른 위험을 줄이고 품질을 향상시키세요.',
+    priority: 'medium' as const
   });
   
   recommendations.push({
-    title: '사용자 피드백 수집 메커니즘 구축',
-    description: '사용자 피드백을 효과적으로 수집하고 분석할 수 있는 시스템을 구축하세요. 사용자 중심 개발을 통해 제품의 가치와 사용성을 지속적으로 향상시킬 수 있습니다.',
-    priority: 'low'
+    title: '문서화 개선',
+    description: 'README, API 문서, 코드 주석 등을 통해 프로젝트 문서화를 개선하세요.',
+    priority: 'medium' as const
   });
   
-  // 우선순위에 따라 정렬
-  const priorityOrder: Record<'high' | 'medium' | 'low', number> = { 'high': 0, 'medium': 1, 'low': 2 };
-  return recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+  // 상위 3개 권장사항만 반환
+  return recommendations
+    .sort((a, b) => {
+      const priorityValue = { 'high': 3, 'medium': 2, 'low': 1 };
+      return priorityValue[b.priority as keyof typeof priorityValue] - priorityValue[a.priority as keyof typeof priorityValue];
+    })
+    .slice(0, 3);
 }
 
 // 프로젝트 요약 생성
@@ -390,6 +347,8 @@ export function generateProjectSummary(
   userLogin?: string
 ): string {
   // 기본 정보 수집
+  console.log(`[generateProjectSummary 호출] isPersonal 매개변수 값: ${isPersonal}`);
+  
   const totalCommits = commits.length;
   const languages = techStack
     .filter(tech => tech.type === 'language')
@@ -413,18 +372,50 @@ export function generateProjectSummary(
     ? `주요 기능으로는 ${keyFeatures.slice(0, 3).map(f => f.title).join(', ')} 등이 있습니다.` 
     : '';
   
-  // 기여도 텍스트
+  // 프로젝트 유형 파악
+  const uniqueAuthors = new Set();
+  commits.forEach(commit => {
+    if (commit?.commit?.author?.email) {
+      uniqueAuthors.add(commit.commit.author.email);
+    }
+  });
+  
+  console.log(`[요약 생성] 커밋에서 확인된 고유 이메일: ${uniqueAuthors.size}개`);
+  
+  // 매개변수로 받은 isPersonal 값을 우선 사용하되, 
+  // 만약 커밋에서 여러 기여자가 확인되면 팀 프로젝트로 간주
+  let projectType = isPersonal;
+  
+  if (uniqueAuthors.size > 1) {
+    console.log('[요약 생성] 여러 기여자가 있어 팀 프로젝트로 판단함');
+    projectType = false;
+  } else {
+    console.log('[요약 생성] 단일 기여자 프로젝트로 판단함');
+  }
+  
+  console.log(`[요약 생성] 최종 프로젝트 유형: ${projectType ? '개인' : '팀'} 프로젝트`);
+  
+  // 기여도 텍스트 (팀 프로젝트에서만 표시)
   let contributionText = '';
-  if (isPersonal && contributions && contributions.length > 0) {
-    const userContribution = contributions.find(c => c.author === userLogin);
-    if (userContribution) {
-      contributionText = `이 프로젝트에서 ${Math.round(userContribution.percentage)}%의 기여도를 보여주었으며, `;
+  
+  if (!projectType && userLogin) {
+    // 현재 사용자의 커밋 수 계산
+    const userCommits = commits.filter(commit => {
+      const authorName = commit?.commit?.author?.name || '';
+      const authorLogin = commit?.author?.login || '';
+      return authorName === userLogin || authorLogin === userLogin;
+    });
+    
+    if (userCommits.length > 0) {
+      const percentage = Math.round((userCommits.length / totalCommits) * 100);
+      console.log(`[요약 생성] 사용자 ${userLogin}의 기여도: ${percentage}% (${userCommits.length}/${totalCommits})`);
+      contributionText = `이 프로젝트에서 ${percentage}%의 기여도를 보여주었으며, `;
     }
   }
   
   // 도메인 텍스트
   const domainText = domains.length > 0 
-    ? `${domains.join(', ')} 영역의 ${isPersonal ? '역량을 보여주는' : '솔루션을 제공하는'}` 
+    ? `${domains.join(', ')} 영역의 ${projectType ? '역량을 보여주는' : '솔루션을 제공하는'}` 
     : '';
   
   // 기술 스택 텍스트
@@ -439,5 +430,9 @@ export function generateProjectSummary(
   const durationText = `약 ${durationInMonths}개월 동안 총 ${totalCommits}개의 커밋을 통해 개발되었습니다.`;
   
   // 전체 요약문 생성
-  return `이 프로젝트는 ${domainText} ${isPersonal ? '개인' : '팀'} 프로젝트입니다. ${techStackText} ${contributionText}${durationText} ${featuresText}`;
+  const summary = `이 프로젝트는 ${domainText} ${projectType ? '개인' : '팀'} 프로젝트입니다. ${techStackText} ${contributionText}${durationText} ${featuresText}`;
+  
+  console.log(`[요약 생성] 최종 요약문: ${summary}`);
+  
+  return summary;
 } 

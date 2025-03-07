@@ -4,19 +4,18 @@ import React, { useState, useEffect, use } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { analyzeRepository, AnalysisResult } from '@/lib/analyzer'
-
-// 컴포넌트 임포트
+import { AnalysisResult } from '@/lib/analyzer'
 import {
   TechStackSection,
-  ProjectCharacteristics,
   ContributionAnalysis,
   DevelopmentPattern,
-  CodeQualityMetrics
+  CodeQualityMetrics,
+  AIProjectDefinition
 } from '@/components/analysis'
+import Image from 'next/image'
 
 // 우선순위 색상 매핑
-const PRIORITY_COLORS = {
+const PRIORITY_COLORS: Record<string, string> = {
   'high': 'bg-red-100 text-red-800 border-red-300',
   'medium': 'bg-yellow-100 text-yellow-800 border-yellow-300',
   'low': 'bg-blue-100 text-blue-800 border-blue-300',
@@ -25,13 +24,22 @@ const PRIORITY_COLORS = {
 // 분석 결과 페이지 props 타입
 interface AnalysisPageProps {
   params: Promise<{
-    owner: string
-    repo: string
-  }>
+    owner: string;
+    repo: string;
+  }>;
+}
+
+// 코드 품질 데이터 인터페이스 정의
+interface CodeQualityData {
+  readability: number;
+  maintainability: number;
+  testCoverage: number;
+  documentation: number;
+  architecture: number;
 }
 
 export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
-  // Next.js 15에서 권장하는 방식으로 params 처리
+  // params에서 owner와 repo 추출 - React.use()를 사용하여 언래핑
   const unwrappedParams = use(params);
   const owner = unwrappedParams.owner;
   const repo = unwrappedParams.repo;
@@ -49,6 +57,9 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
     message?: string;
   }>({ progress: 0, stage: 'preparing', completed: false });
 
+  // 분석 재시작 방지를 위한 상태
+  const [analysisRequested, setAnalysisRequested] = useState(false);
+
   // 인증 상태 확인
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -58,45 +69,216 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
 
   // 저장소 분석 실행
   useEffect(() => {
-    if (status === 'authenticated' && session?.accessToken) {
-      runAnalysis()
+    // 이미 분석을 요청했으면 재실행하지 않음
+    if (analysisRequested) {
+      return;
     }
-  }, [status, session])
+
+    if (status === 'authenticated' && session?.accessToken) {
+      // 저장소 분석 상태 확인 먼저 시도
+      const checkExistingAnalysis = async () => {
+        try {
+          const repoKey = `${owner}/${repo}`;
+          const response = await fetch(`/api/analysis/progress?repo=${encodeURIComponent(repoKey)}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.completed && data.result) {
+              console.log('기존 분석 결과 발견, 새 분석 시작하지 않음');
+              setProgress(data);
+              setAnalysis(data.result);
+              setIsLoading(false);
+              setAnalysisRequested(true);
+              return;
+            }
+          }
+          // 기존 분석 결과가 없거나 완료되지 않은 경우에만 새 분석 시작
+          setAnalysisRequested(true);
+          runAnalysis();
+        } catch (err) {
+          console.error('기존 분석 확인 오류:', err);
+          setAnalysisRequested(true);
+          runAnalysis();
+        }
+      };
+      
+      checkExistingAnalysis();
+    }
+  }, [status, session, owner, repo, analysisRequested]);
   
   // 분석 진행 상태 확인
   useEffect(() => {
     if (isLoading) {
+      let checkAttempts = 0;
+      const maxCheckAttempts = 5;
+      let isCancelled = false;
+      
       const checkProgress = async () => {
+        if (isCancelled) return;
+        
         try {
-          const response = await fetch(`/api/analysis/progress?repo=${owner}/${repo}`);
-          if (response.ok) {
+          if (checkAttempts >= maxCheckAttempts) {
+            console.log(`최대 체크 시도 횟수(${maxCheckAttempts}회)에 도달했습니다.`);
+            // 이미 완료된 분석이 있는지 확인 후 재시작
+            const repoKey = `${owner}/${repo}`;
+            const existingCheck = await fetch(`/api/analysis/progress?repo=${encodeURIComponent(repoKey)}`);
+            
+            if (existingCheck.ok) {
+              const existingData = await existingCheck.json();
+              if (existingData.completed && existingData.result) {
+                console.log('분석이 이미 완료되었습니다. 새로운 분석을 시작하지 않습니다.');
+                setProgress(existingData);
+                setAnalysis(existingData.result);
+                setIsLoading(false);
+                return;
+              }
+            }
+            
+            // 분석이 정말 필요한 경우에만 재시작, 이미 분석 요청이 있었는데 실패한 경우만 재시도
+            if (session?.accessToken && analysisRequested) {
+              console.log('분석을 다시 시작합니다...');
+              runAnalysis();
+              checkAttempts = 0;
+              return;
+            }
+          }
+          
+          checkAttempts++;
+          console.log(`진행 상태 확인 중... ${owner}/${repo} (시도 ${checkAttempts}/${maxCheckAttempts})`);
+          
+          // 정확한 repo 키 설정 - 대소문자 주의
+          const repoKey = `${owner}/${repo}`;
+          
+          // 타임아웃 있는 fetch 함수
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+          
+          try {
+            const response = await fetch(`/api/analysis/progress?repo=${encodeURIComponent(repoKey)}`, {
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+              throw new Error(`API 오류: ${response.status} ${response.statusText}`);
+            }
+            
             const data = await response.json();
-            setProgress(data);
+            
+            // 디버깅: 받은 데이터 구조 확인
+            const dataKeys = Object.keys(data);
+            console.log(`진행 상태 데이터 키: ${dataKeys.join(', ')}`);
+            
+            // 이전 상태와 비교하여 변경 사항만 업데이트
+            if (JSON.stringify(data) !== JSON.stringify(progress)) {
+              setProgress(data);
+            }
             
             // 분석이 완료되었고 결과가 있으면 결과 설정
             if (data.completed && data.result) {
+              console.log('분석 완료, 결과가 있습니다.');
+              console.log('결과 객체 키:', Object.keys(data.result).join(', '));
               setAnalysis(data.result);
               setIsLoading(false);
+              return; // 중요: 완료된 경우 함수 종료
             } 
             // 오류가 있으면 오류 설정
             else if (data.error) {
+              console.error('분석 오류:', data.error);
               setError(data.error.message);
               setIsLoading(false);
+              return; // 중요: 오류가 있는 경우 함수 종료
             }
+            // 완료됐지만 결과가 없는 경우, 몇 번만 재시도
+            else if (data.completed && !data.result) {
+              console.warn('분석이 완료되었지만 결과가 없습니다.');
+              
+              // 재시도 횟수 제한 로직 추가
+              const retryCount = parseInt(sessionStorage.getItem(`retry-${repoKey}`) || '0');
+              
+              if (retryCount < 2) { // 최대 2번만 재시도
+                console.log(`분석 재시도 (${retryCount + 1}/2)...`);
+                sessionStorage.setItem(`retry-${repoKey}`, String(retryCount + 1));
+                
+                // 재시도 트리거 (delay 추가)
+                setTimeout(() => {
+                  if (session?.accessToken) {
+                    // 재시도 전 마지막으로 한 번 더 확인
+                    const recheckAnalysis = async () => {
+                      if (isCancelled) return;
+                      
+                      try {
+                        const recheckResponse = await fetch(`/api/analysis/progress?repo=${encodeURIComponent(repoKey)}`);
+                        if (recheckResponse.ok) {
+                          const recheckData = await recheckResponse.json();
+                          if (recheckData.completed && recheckData.result) {
+                            console.log('재확인 결과 분석이 이미 완료되었습니다.');
+                            setProgress(recheckData);
+                            setAnalysis(recheckData.result);
+                            setIsLoading(false);
+                            return;
+                          }
+                        }
+                        // 1초 후에 다시 한번 확인하고 정말 필요한 경우에만 분석 재시작
+                        setTimeout(() => {
+                          if (isCancelled) return;
+                          runAnalysis();
+                        }, 1000);
+                      } catch (err) {
+                        console.error('재확인 오류:', err);
+                        if (!isCancelled) {
+                          runAnalysis();
+                        }
+                      }
+                    };
+                    recheckAnalysis();
+                  }
+                }, 3000);
+              } else {
+                console.error('최대 재시도 횟수 초과. 분석을 중단합니다.');
+                setError('분석 결과를 가져오는데 실패했습니다. 나중에 다시 시도해 주세요.');
+                setIsLoading(false);
+              }
+            }
+          } catch (fetchError: any) {
+            clearTimeout(timeoutId);
+            
+            // AbortError는 타임아웃이 발생한 경우
+            if (fetchError.name === 'AbortError') {
+              console.error('API 요청 시간 초과');
+            } else {
+              console.error('API 호출 오류:', fetchError);
+            }
+            
+            // 다음 폴링 때 다시 시도하므로 별도의 처리 필요 없음
           }
         } catch (err) {
           console.error('진행 상태 확인 오류:', err);
         }
       };
       
-      // 주기적으로 진행 상태 확인
-      const intervalId = setInterval(checkProgress, 2000);
-      return () => clearInterval(intervalId);
+      // 주기적으로 진행 상태 확인 (2초에서 5초로 증가)
+      let intervalId = setInterval(checkProgress, 5000);
+      // 최초 1회 즉시 실행
+      checkProgress();
+      
+      return () => {
+        clearInterval(intervalId);
+        isCancelled = true;
+      };
     }
-  }, [isLoading, owner, repo]);
+  }, [isLoading, owner, repo, session]);
 
   // 분석 실행 함수
   const runAnalysis = async () => {
+    // 이미 분석 중이면 중복 실행하지 않음
+    if (isLoading && progress.progress > 0) {
+      console.log('분석이 이미 진행 중입니다. 중복 실행하지 않습니다.');
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     
@@ -105,22 +287,70 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
         throw new Error('인증 토큰이 없습니다.');
       }
       
-      const result = await analyzeRepository(
-        session.accessToken as string,
-        owner,
-        repo,
-        {
-          personalAnalysis: true,
-          userLogin: session.user?.name || undefined,
-          userEmail: session.user?.email || undefined
+      // 이미 분석이 완료된 상태인지 한번 더 확인
+      const repoKey = `${owner}/${repo}`;
+      try {
+        const existingCheck = await fetch(`/api/analysis/progress?repo=${encodeURIComponent(repoKey)}`);
+        if (existingCheck.ok) {
+          const checkData = await existingCheck.json();
+          if (checkData.completed && checkData.result) {
+            console.log('분석이 이미 완료되었습니다. 중복 요청하지 않습니다.');
+            setProgress(checkData);
+            setAnalysis(checkData.result);
+            setIsLoading(false);
+            return;
+          }
         }
-      );
+      } catch (checkErr) {
+        console.error('기존 분석 결과 확인 오류:', checkErr);
+        // 오류 발생 시에도 계속 진행 (새 분석 시도)
+      }
       
-      setAnalysis(result);
+      // API 엔드포인트를 통해 분석 요청
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20초 타임아웃
+      
+      try {
+        const response = await fetch('/api/analysis/repository', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            accessToken: session.accessToken,
+            owner,
+            repo,
+            options: {
+              personalAnalysis: true,
+              userLogin: session.user?.name || undefined,
+              userEmail: session.user?.email || undefined
+            }
+          }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`분석 요청 실패: ${response.status} ${response.statusText}`);
+        }
+        
+        // 추가: 분석 요청 결과 확인
+        const result = await response.json();
+        console.log('분석 요청 결과:', result);
+        
+        // 분석이 시작되면 진행 상태를 확인하는 로직이 실행됨
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          throw new Error('분석 요청 시간이 초과되었습니다.');
+        }
+        throw fetchError;
+      }
     } catch (err) {
       console.error('저장소 분석 실패:', err);
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -142,19 +372,99 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
       {isLoading ? (
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">저장소 분석 진행 중...</h2>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-            <div 
-              className="bg-primary-600 h-2.5 rounded-full transition-all duration-500" 
-              style={{ width: `${progress.progress}%` }}
-            ></div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4 overflow-hidden relative">
+            {progress.progress > 0 ? (
+              <div 
+                className="bg-primary-600 h-2.5 rounded-full transition-all duration-500 ease-in-out" 
+                style={{ width: `${progress.progress}%` }}
+              ></div>
+            ) : (
+              <div className="h-2.5 w-full relative overflow-hidden">
+                <div className="animate-progress-pulse h-full w-1/2 absolute top-0 left-0 bg-blue-400/30"></div>
+              </div>
+            )}
           </div>
-          <p className="text-gray-600 mb-2">
-            {progress.stage === 'preparing' && '분석 준비 중...'}
-            {progress.stage === 'fetching' && '저장소 데이터 가져오는 중...'}
-            {progress.stage === 'analyzing' && '데이터 분석 중...'}
-            {progress.stage === 'finalizing' && '분석 마무리 중...'}
+          
+          <div className="flex justify-between text-xs text-gray-500 mb-4">
+            <span>0%</span>
+            <span className="font-medium">{progress.progress}%</span>
+            <span>100%</span>
+          </div>
+          
+          <div className="flex items-center mb-3">
+            <div className={`w-3 h-3 rounded-full mr-2 ${
+              progress.stage === 'preparing' ? 'bg-blue-500 animate-pulse' : 
+              progress.stage === 'fetching' || progress.stage === 'analyzing' || progress.stage === 'finalizing' ? 'bg-blue-500' : 'bg-gray-300'
+            }`}></div>
+            <p className={`text-gray-600 ${progress.stage === 'preparing' ? 'font-medium' : ''}`}>
+              {progress.stage === 'preparing' ? '분석 준비 중...' : '분석 준비'}
+              {progress.stage === 'preparing' && 
+                <span className="ml-1 inline-flex">
+                  <span className="dot-1">.</span>
+                  <span className="dot-2">.</span>
+                  <span className="dot-3">.</span>
+                </span>
+              }
+            </p>
+          </div>
+
+          <div className="flex items-center mb-3">
+            <div className={`w-3 h-3 rounded-full mr-2 ${
+              progress.stage === 'fetching' ? 'bg-blue-500 animate-pulse' : 
+              progress.stage === 'analyzing' || progress.stage === 'finalizing' ? 'bg-blue-500' : 'bg-gray-300'
+            }`}></div>
+            <p className={`text-gray-600 ${progress.stage === 'fetching' ? 'font-medium' : ''}`}>
+              {progress.stage === 'fetching' ? '저장소 데이터 가져오는 중...' : '저장소 데이터 가져오기'}
+              {progress.stage === 'fetching' && 
+                <span className="ml-1 inline-flex">
+                  <span className="dot-1">.</span>
+                  <span className="dot-2">.</span>
+                  <span className="dot-3">.</span>
+                </span>
+              }
+            </p>
+          </div>
+
+          <div className="flex items-center mb-3">
+            <div className={`w-3 h-3 rounded-full mr-2 ${
+              progress.stage === 'analyzing' ? 'bg-blue-500 animate-pulse' : 
+              progress.stage === 'finalizing' ? 'bg-blue-500' : 'bg-gray-300'
+            }`}></div>
+            <p className={`text-gray-600 ${progress.stage === 'analyzing' ? 'font-medium' : ''}`}>
+              {progress.stage === 'analyzing' ? 'GPT-4 Mini로 데이터 분석 중...' : '데이터 분석'}
+              {progress.stage === 'analyzing' && 
+                <span className="ml-1 inline-flex">
+                  <span className="dot-1">.</span>
+                  <span className="dot-2">.</span>
+                  <span className="dot-3">.</span>
+                </span>
+              }
+            </p>
+          </div>
+
+          <div className="flex items-center mb-4">
+            <div className={`w-3 h-3 rounded-full mr-2 ${
+              progress.stage === 'finalizing' ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'
+            }`}></div>
+            <p className={`text-gray-600 ${progress.stage === 'finalizing' ? 'font-medium' : ''}`}>
+              {progress.stage === 'finalizing' ? '분석 결과 생성 중...' : '결과 생성'}
+              {progress.stage === 'finalizing' && 
+                <span className="ml-1 inline-flex">
+                  <span className="dot-1">.</span>
+                  <span className="dot-2">.</span>
+                  <span className="dot-3">.</span>
+                </span>
+              }
+            </p>
+          </div>
+
+          <p className="text-sm text-gray-500 italic">
+            {progress.message || '분석은 약 30초에서 1분 정도 소요됩니다. 잠시만 기다려주세요...'}
           </p>
-          <p className="text-sm text-gray-500">{progress.message || '잠시만 기다려주세요...'}</p>
+          
+          <div className="mt-4 text-xs text-gray-400">
+            GPT-4 Mini를 사용한 코드 분석 중입니다. 저장소 크기에 따라 시간이 더 걸릴 수 있습니다.
+          </div>
         </div>
       ) : error ? (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-6 mb-6">
@@ -181,23 +491,48 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
             </div>
           </div>
           
-          {/* 분석 요약 */}
-          <div className="bg-white shadow rounded-xl p-7">
-            <h2 className="text-xl font-semibold text-gray-900 mb-5">요약</h2>
-            <p className="text-gray-700 leading-relaxed">{analysis.summary}</p>
+          {/* AI 프로젝트 정의 (요약 위에 추가) */}
+          {analysis.repositoryInfo.aiAnalyzed && (
+            <AIProjectDefinition
+              isAIAnalyzed={analysis.repositoryInfo.aiAnalyzed}
+              description=""
+              projectType={analysis.repositoryInfo.aiProjectType || '웹 애플리케이션'}
+              features={analysis.keyFeatures
+                .filter((feature: { importance: number }) => feature.importance >= 0.7)
+                .map((feature: { title: string }) => feature.title)}
+              technologies={analysis.techStack
+                .filter((tech: { confidence: number }) => {
+                  // 신뢰도가 높은 모든 기술 스택 포함 (언어, 프레임워크, 라이브러리 등)
+                  return tech.confidence >= 0.7;
+                })
+                .map((tech: { name: string }) => tech.name)}
+            />
+          )}
+          
+          {/* 분석 요약 (상세 설명) */}
+          <div className="bg-white dark:bg-gray-800 shadow rounded-xl p-7 mb-6">
+            <div className="flex items-center mb-5">
+              <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mr-3">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-6 w-6 text-blue-600 dark:text-blue-300" 
+                  viewBox="0 0 20 20" 
+                  fill="currentColor"
+                >
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">프로젝트 설명</h2>
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-5 rounded-lg leading-relaxed text-base">
+              {analysis.summary}
+            </p>
           </div>
 
           {/* 기술 스택 */}
           <TechStackSection 
             techStack={analysis.techStack} 
-            analysisType="personal"
-            userLogin={session?.user?.name || undefined}
-          />
-
-          {/* 프로젝트 특성 */}
-          <ProjectCharacteristics 
-            characteristics={analysis.characteristics}
-            analysisType="personal"
+            analysisType={analysis.repositoryInfo.isUserAnalysis ? "personal" : "repository"}
             userLogin={session?.user?.name || undefined}
           />
 
@@ -205,9 +540,9 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           <ContributionAnalysis 
             contributions={Object.entries(analysis.developerProfile.commitCategories).map(([category, count]) => ({
               category,
-              percentage: Math.round((count / analysis.developerProfile.totalCommits) * 100)
+              percentage: Math.round((Number(count) / analysis.developerProfile.totalCommits) * 100)
             }))}
-            analysisType="personal"
+            analysisType={analysis.repositoryInfo.isUserAnalysis ? "personal" : "repository"}
             userLogin={session?.user?.name || undefined}
           />
 
@@ -215,7 +550,7 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           <div className="bg-white shadow rounded-xl p-7">
             <h2 className="text-xl font-semibold text-gray-900 mb-5">주요 기능</h2>
             <div className="space-y-5">
-              {analysis.keyFeatures.map((feature, index) => (
+              {analysis.keyFeatures.map((feature: { title: string; description: string }, index: number) => (
                 <div key={index} className="border-l-4 border-primary-500 pl-5 py-3 bg-gray-50 rounded-r-lg">
                   <h3 className="text-lg font-medium text-gray-900">{feature.title}</h3>
                   <p className="mt-2 text-sm text-gray-600 leading-relaxed">{feature.description}</p>
@@ -228,7 +563,7 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           <div className="bg-white shadow rounded-xl p-7">
             <h2 className="text-xl font-semibold text-gray-900 mb-5">개발 패턴 인사이트</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {analysis.insights.map((insight, index) => (
+              {analysis.insights.map((insight: { title: string; description: string }, index: number) => (
                 <div key={index} className="bg-blue-50 rounded-xl p-5 border border-blue-100">
                   <h3 className="text-md font-medium text-blue-800">{insight.title}</h3>
                   <p className="mt-2 text-sm text-blue-700 leading-relaxed">{insight.description}</p>
@@ -241,10 +576,10 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           <div className="bg-white shadow rounded-xl p-7">
             <h2 className="text-xl font-semibold text-gray-900 mb-5">맞춤형 개선 추천</h2>
             <div className="space-y-5">
-              {analysis.recommendations.map((recommendation, index) => (
+              {analysis.recommendations.map((recommendation: { title: string; description: string; priority: string }, index: number) => (
                 <div 
                   key={index} 
-                  className={`border rounded-xl p-5 ${PRIORITY_COLORS[recommendation.priority]}`}
+                  className={`border rounded-xl p-5 ${PRIORITY_COLORS[recommendation.priority] || ''}`}
                 >
                   <div className="flex items-start">
                     <div className="flex-shrink-0 mt-0.5">
@@ -279,10 +614,23 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           </div>
 
           {/* 코드 품질 */}
+          {/* 코드 품질 메트릭 디버깅 로그 */}
+          {(() => { console.log('코드 품질 메트릭 상태:', analysis.codeQuality, analysis.codeQualityMetrics); return null; })()}
           <CodeQualityMetrics 
-            score={analysis.codeQuality}
-            metrics={analysis.codeQualityMetrics}
-            analysisType="personal"
+            score={analysis.codeQuality || 70}
+            metrics={{
+              readability: typeof analysis.codeQualityMetrics === 'object' && 'readability' in analysis.codeQualityMetrics 
+                ? (analysis.codeQualityMetrics as any).readability : 70,
+              maintainability: typeof analysis.codeQualityMetrics === 'object' && 'maintainability' in analysis.codeQualityMetrics
+                ? (analysis.codeQualityMetrics as any).maintainability : 65,
+              testCoverage: typeof analysis.codeQualityMetrics === 'object' && 'testCoverage' in analysis.codeQualityMetrics
+                ? (analysis.codeQualityMetrics as any).testCoverage : 50,
+              documentation: typeof analysis.codeQualityMetrics === 'object' && 'documentation' in analysis.codeQualityMetrics
+                ? (analysis.codeQualityMetrics as any).documentation : 60,
+              architecture: typeof analysis.codeQualityMetrics === 'object' && 'architecture' in analysis.codeQualityMetrics
+                ? (analysis.codeQualityMetrics as any).architecture : 75
+            }}
+            analysisType="repository"
             userLogin={session?.user?.name || undefined}
           />
 
@@ -297,7 +645,36 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           <div className="flex justify-center mt-8">
             <button 
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
-              onClick={() => alert('PDF 다운로드 기능은 준비 중입니다.')}
+              onClick={() => {
+                // 분석 결과가 없는 경우 먼저 확인
+                if (!analysis || Object.keys(analysis).length === 0) {
+                  alert('분석 결과가 아직 준비되지 않았습니다. 분석을 먼저 실행해주세요.');
+                  return;
+                }
+
+                // 성공적으로 완료된 분석이 있는지 확인
+                if (!analysis.summary || 
+                    !analysis.techStack || 
+                    analysis.techStack.length === 0 ||
+                    !analysis.repositoryInfo.aiProjectType) {
+                  alert('분석 결과가 완전하지 않습니다. 분석을 다시 실행해주세요.');
+                  return;
+                }
+
+                // 모든 조건을 통과했다면 PDF 다운로드 URL 열기
+                const pdfUrl = `/api/analysis/pdf/${owner}/${repo}`;
+                console.log('PDF 다운로드 요청:', pdfUrl);
+                
+                // localStorage에 현재 분석 결과 임시 저장 (PDF 생성 시 사용)
+                try {
+                  localStorage.setItem('current_analysis_data', JSON.stringify(analysis));
+                  console.log('분석 결과 임시 저장 완료');
+                } catch (err) {
+                  console.error('분석 결과 임시 저장 실패:', err);
+                }
+                
+                window.open(pdfUrl, '_blank');
+              }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
@@ -308,5 +685,5 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
         </div>
       ) : null}
     </div>
-  )
+  );
 } 

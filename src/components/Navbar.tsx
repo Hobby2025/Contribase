@@ -80,8 +80,8 @@ export default function Navbar() {
         setIsLoginLoading(false)
       })
     
-    // 안전장치: 10초 후 로딩 상태 자동 해제
-    setTimeout(() => setIsLoginLoading(false), 10000)
+    // 안전장치: 15초 후 로딩 상태 자동 해제 (기존 10초에서 증가)
+    setTimeout(() => setIsLoginLoading(false), 15000)
   }
 
   // 메뉴 아이템이 현재 경로와 일치하는지 확인
@@ -110,7 +110,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md' : 'bg-white dark:bg-gray-900'}`}>
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-md' : 'bg-white dark:bg-gray-900'}`}>
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           {/* 로고 */}
@@ -121,6 +121,7 @@ export default function Navbar() {
               width={160} 
               height={30} 
               className="h-6 w-auto"
+              priority
             />
           </Link>
 
@@ -137,6 +138,7 @@ export default function Navbar() {
                 <button 
                   onClick={toggleProfileMenu} 
                   className="flex items-center space-x-2 focus:outline-none"
+                  aria-label="프로필 메뉴 열기"
                 >
                   {session.user?.image ? (
                     <Image 
@@ -154,7 +156,7 @@ export default function Navbar() {
                 </button>
                 
                 {isProfileMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10">
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 border border-gray-100 dark:border-gray-700">
                     <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{session.user?.name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session.user?.email}</p>
@@ -172,7 +174,7 @@ export default function Navbar() {
               <button 
                 onClick={handleLogin} 
                 disabled={isLoginLoading}
-                className="text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 py-2 px-4 rounded-lg transition-colors flex items-center"
+                className={`text-sm font-medium text-white py-2 px-4 rounded-lg transition-all flex items-center ${isLoginLoading ? 'bg-primary-500 cursor-not-allowed' : 'bg-primary-600 hover:bg-primary-700'}`}
               >
                 {isLoginLoading ? (
                   <>
@@ -194,6 +196,7 @@ export default function Navbar() {
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)} 
               className="text-gray-600 dark:text-gray-300 focus:outline-none"
+              aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
             >
               {isMenuOpen ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -207,81 +210,87 @@ export default function Navbar() {
             </button>
           </div>
         </div>
-      </div>
-
-      {/* 모바일 메뉴 */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
-          <div className="container mx-auto px-4 py-3">
+        
+        {/* 모바일 메뉴 */}
+        {isMenuOpen && (
+          <div className="md:hidden mt-4 py-4 border-t border-gray-100 dark:border-gray-800">
             <div className="flex flex-col space-y-4">
-              {MENU_ITEMS.map(item => (
-                <Link 
-                  key={item.path}
-                  href={item.path} 
-                  className={`text-sm font-medium py-2 ${isActiveMenuItem(item) 
-                    ? 'text-primary-600 dark:text-primary-400 font-bold' 
-                    : 'text-gray-600 dark:text-gray-300'}`}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              
-              {session ? (
-                <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    {session.user?.image ? (
-                      <Image 
-                        src={session.user.image} 
-                        alt={session.user.name || "사용자"} 
-                        width={32} 
-                        height={32} 
-                        className="h-8 w-8 rounded-full border-2 border-gray-200 dark:border-gray-700"
-                      />
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-400">
-                        {session.user?.name?.charAt(0) || "U"}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{session.user?.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session.user?.email}</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => signOut()} 
-                    className="w-full text-left py-2 text-sm text-gray-700 dark:text-gray-200"
+              {MENU_ITEMS.map((item) => {
+                const isActive = isActiveMenuItem(item);
+                const activeClass = 'text-primary-600 dark:text-primary-400 font-bold';
+                const inactiveClass = 'text-gray-600 dark:text-gray-300';
+                
+                return (
+                  <Link 
+                    key={item.path}
+                    href={item.path} 
+                    className={`text-base font-medium ${isActive ? activeClass : inactiveClass}`}
+                    onClick={() => setIsMenuOpen(false)}
                   >
-                    로그아웃
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={handleLogin} 
-                  disabled={isLoginLoading}
-                  className="text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 py-2 px-4 rounded-lg transition-colors flex items-center justify-center mt-2"
-                >
-                  {isLoginLoading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      로그인 중...
-                    </>
-                  ) : (
-                    <>GitHub 로그인</>
-                  )}
-                </button>
-              )}
+                    {item.label}
+                  </Link>
+                );
+              })}
               
-              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800 pt-4">
-                v{APP_VERSION}
+              <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                {session ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {session.user?.image ? (
+                        <Image 
+                          src={session.user.image} 
+                          alt={session.user.name || "사용자"} 
+                          width={36} 
+                          height={36} 
+                          className="h-9 w-9 rounded-full border-2 border-gray-200 dark:border-gray-700"
+                        />
+                      ) : (
+                        <div className="h-9 w-9 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-400">
+                          {session.user?.name?.charAt(0) || "U"}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{session.user?.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session.user?.email}</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        signOut();
+                        setIsMenuOpen(false);
+                      }} 
+                      className="px-4 py-2 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg"
+                    >
+                      로그아웃
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      handleLogin();
+                      setIsMenuOpen(false);
+                    }} 
+                    disabled={isLoginLoading}
+                    className={`w-full text-sm font-medium text-white py-3 px-4 rounded-lg transition-all flex items-center justify-center ${isLoginLoading ? 'bg-primary-500 cursor-not-allowed' : 'bg-primary-600 hover:bg-primary-700'}`}
+                  >
+                    {isLoginLoading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        로그인 중...
+                      </>
+                    ) : (
+                      <>GitHub 로그인</>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </nav>
   )
 } 

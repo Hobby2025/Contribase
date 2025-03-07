@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AnalysisLoading from './AnalysisLoading'
 
 interface AnalysisProgressProps {
@@ -25,12 +25,37 @@ export default function AnalysisProgress({
   const [stage, setStage] = useState<'preparing' | 'fetching' | 'analyzing' | 'finalizing'>('preparing');
   const [error, setError] = useState<Error | null>(null);
   
+  // 연속 실패 횟수를 추적하기 위한 ref
+  const failedAttemptsRef = useRef(0);
+  const maxFailedAttempts = 3;
+  
+  // 분석 완료 여부를 저장하는 ref
+  const isCompletedRef = useRef(false);
+  
   // 분석 단계별 메시지
   const stageMessages = {
     preparing: '분석 준비 중',
     fetching: '저장소 데이터 가져오는 중',
     analyzing: '코드 패턴 분석 중',
     finalizing: '결과 생성 중'
+  };
+  
+  // fetch 함수 - 타임아웃 기능 추가
+  const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 10000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(id);
+      return response;
+    } catch (error) {
+      clearTimeout(id);
+      throw error;
+    }
   };
   
   // 분석 진행 상태 폴링
@@ -40,54 +65,112 @@ export default function AnalysisProgress({
     
     const pollProgress = async () => {
       try {
-        // 분석 진행 상태 API 호출 (실제 구현 필요)
-        const response = await fetch(`/api/analysis/progress?repo=${repositoryName}`);
-        
-        if (!response.ok) {
-          throw new Error('분석 상태 확인 중 오류가 발생했습니다.');
+        // 이미 완료된 경우 폴링 중지
+        if (isCompletedRef.current) {
+          console.log('이미 분석이 완료되었습니다. 폴링을 중지합니다.');
+          clearInterval(pollInterval);
+          return;
         }
         
-        const data = await response.json();
+        // 분석 진행 상태 API 호출
+        console.log(`분석 진행 상태 확인 중: ${repositoryName}`);
         
-        if (isMounted) {
-          setProgress(data.progress);
-          setStage(data.stage);
+        try {
+          // 타임아웃이 있는 fetch 사용
+          const response = await fetchWithTimeout(
+            `/api/analysis/progress?repo=${encodeURIComponent(repositoryName)}`,
+            {},
+            10000 // 10초 타임아웃
+          );
           
-          // 분석 완료 시
-          if (data.completed) {
-            clearInterval(pollInterval);
-            onComplete(data.result);
+          if (!response.ok) {
+            throw new Error(`API 응답 오류: ${response.status} ${response.statusText}`);
           }
           
-          // 오류 발생 시
-          if (data.error) {
-            clearInterval(pollInterval);
-            const error = new Error(data.error.message || '분석 중 오류가 발생했습니다.');
+          const data = await response.json();
+          console.log('받은 분석 상태 데이터:', data);
+          
+          if (isMounted) {
+            // 이전 진행률보다 낮으면 업데이트하지 않음 (역행 방지)
+            if (data.progress >= progress) {
+              setProgress(data.progress);
+            }
+            setStage(data.stage || 'preparing');
+            
+            // 분석 완료 시
+            if (data.completed && data.result) {
+              console.log('분석 완료됨, 결과 있음:', !!data.result);
+              isCompletedRef.current = true;
+              clearInterval(pollInterval);
+              onComplete(data.result);
+              return;
+            }
+            // 진행 중인 경우: 실패 카운터 초기화
+            else if (!data.error) {
+              failedAttemptsRef.current = 0;
+            }
+            
+            // 오류 발생 시
+            if (data.error) {
+              failedAttemptsRef.current++;
+              console.error(`분석 오류 발생 (${failedAttemptsRef.current}/${maxFailedAttempts}):`, data.error);
+              
+              // 최대 실패 횟수 초과 시에만 오류 처리
+              if (failedAttemptsRef.current >= maxFailedAttempts) {
+                const error = new Error(data.error.message || '분석 중 오류가 발생했습니다.');
+                setError(error);
+                clearInterval(pollInterval);
+                onError(error);
+              }
+            }
+          }
+        } catch (fetchError) {
+          // fetch 자체의 오류 (네트워크 오류, 타임아웃 등)
+          failedAttemptsRef.current++;
+          
+          const errorMessage = fetchError instanceof Error ? 
+            (fetchError.name === 'AbortError' ? '요청 시간 초과' : fetchError.message) : 
+            '알 수 없는 오류';
+            
+          console.error(`폴링 오류 발생 (${failedAttemptsRef.current}/${maxFailedAttempts}): ${errorMessage}`);
+          
+          // 최대 실패 횟수 초과 시에만 오류 처리
+          if (failedAttemptsRef.current >= maxFailedAttempts && isMounted) {
+            const error = new Error(`네트워크 오류: ${errorMessage}`);
             setError(error);
+            clearInterval(pollInterval);
             onError(error);
           }
         }
       } catch (err) {
-        if (isMounted) {
+        // 일반적인 예외 처리 (JSON 파싱 오류 등)
+        failedAttemptsRef.current++;
+        console.error(`폴링 처리 오류 (${failedAttemptsRef.current}/${maxFailedAttempts}):`, err);
+        
+        // 최대 실패 횟수 초과 시에만 오류 처리
+        if (failedAttemptsRef.current >= maxFailedAttempts && isMounted) {
           const error = err instanceof Error ? err : new Error('알 수 없는 오류가 발생했습니다.');
           setError(error);
-          onError(error);
           clearInterval(pollInterval);
+          onError(error);
         }
       }
     };
     
-    // 초기 폴링 시작
-    pollProgress();
-    
-    // 3초마다 진행 상태 확인
-    pollInterval = setInterval(pollProgress, 3000);
+    // 초기 폴링 시작 (최초 지연)
+    const initialPollDelay = setTimeout(() => {
+      pollProgress();
+      
+      // 그 후 3초마다 진행 상태 확인
+      pollInterval = setInterval(pollProgress, 3000);
+    }, 1000);
     
     return () => {
       isMounted = false;
+      clearTimeout(initialPollDelay);
       clearInterval(pollInterval);
     };
-  }, [repositoryName, onComplete, onError]);
+  }, [repositoryName, onComplete, onError, progress]);
   
   // 오류 발생 시
   if (error) {
