@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { analyzeRepository } from '@/lib/analyzer'
+import { analyzeRepository } from '@/modules/analyzer'
 
 export async function POST(request: NextRequest) {
   try {

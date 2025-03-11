@@ -1,6 +1,6 @@
 'use server'
 
-import { MODEL_CONFIG } from './config';
+import { MODEL_CONFIG } from '@/utils/config';
 
 // 일반 분석기 타입 정의
 export type TextClassifier = (text: string) => { label: string; score: number }[];

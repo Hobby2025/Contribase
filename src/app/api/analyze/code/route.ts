@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeCodeChanges } from '@/lib/modelUtils';
-import { ANALYSIS_CONFIG } from '@/lib/config';
+import { MODEL_CONFIG } from '@/utils/config';
 
 /**
  * POST /api/analyze/code
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
     
     // 분석할 코드 변경 수 제한
-    const limitedChanges = codeChanges.slice(0, ANALYSIS_CONFIG.MAX_FILES_TO_ANALYZE);
+    const limitedChanges = codeChanges.slice(0, MODEL_CONFIG.MAX_BATCH_SIZE);
     
     // 분석 수행
     const result = await analyzeCodeChanges(limitedChanges);

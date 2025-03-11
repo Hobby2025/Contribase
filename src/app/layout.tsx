@@ -1,10 +1,10 @@
 import '@/styles/globals.css'
 import type { Metadata } from 'next'
 import Navbar from '@/components/Navbar'
-import Footer from '@/components/Footer'
+import Footer from '@/components/common/Footer'
 import AuthProvider from '@/components/AuthProvider'
-import ThemeProvider from '@/components/ThemeProvider'
-import ScrollToTop from '@/components/ScrollToTop'
+import ThemeProvider from '@/components/common/ThemeProvider'
+import ScrollToTop from '@/components/common/ScrollToTop'
 
 export const metadata: Metadata = {
   title: 'Contribase',

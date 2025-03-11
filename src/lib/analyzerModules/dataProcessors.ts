@@ -1,6 +1,6 @@
 'use client'
 
-import { AnalysisResult } from '../../types/analysis';
+import { AnalysisResult } from '@/modules/analyzer';
 
 // 필요한 타입들을 AnalysisResult에서 추출
 type ProjectCharacteristic = AnalysisResult['characteristics'][0];
@@ -28,7 +28,8 @@ export function processDeveloperProfile(commitData: any[]): DeveloperProfile {
     totalCommits: commitData.length,
     contributors: [],
     commitCategories: {},
-    activityPeriod: '6개월 동안 활동'
+    activityPeriod: '6개월 동안 활동',
+    userLanguages: []
   };
 }
 

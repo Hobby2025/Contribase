@@ -1,6 +1,6 @@
 'use client'
 
-import { ModelStatus } from './modelUtils';
+import { ModelStatus } from '@/lib/modelUtils';
 
 /**
  * 클라이언트에서 모델 상태를 가져오는 함수

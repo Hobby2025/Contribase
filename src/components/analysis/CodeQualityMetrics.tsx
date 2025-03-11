@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import BarChart from '@/components/charts/BarChart'
+import BarChart from '@/components/analysis/charts/BarChart'
 
 // 코드 품질 메트릭 타입 정의
 type CodeQualityMetricsData = {

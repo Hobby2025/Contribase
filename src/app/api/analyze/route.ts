@@ -3,10 +3,13 @@ import {
   analyzeCommitMessages,
   analyzeCodeChanges,
   getModelStatus
-} from '@/lib/modelUtils.client';
-import { ANALYSIS_CONFIG } from '@/lib/config';
+} from '@/utils/modelUtils.client';
+import { MODEL_CONFIG } from '@/utils/config';
 import { analyzeCodeQuality, calculateOverallQuality } from '@/lib/codeQualityAnalyzer';
-import { AnalysisResult } from '@/types/analysis';
+import { AnalysisResult } from '@/modules/analyzer/types';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { analyzeRepository } from '@/modules/analyzer';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +27,7 @@ export async function POST(request: NextRequest) {
       }
       
       // 분석할 커밋 메시지 수 제한
-      const limitedMessages = messages.slice(0, ANALYSIS_CONFIG.MAX_COMMITS_TO_ANALYZE);
+      const limitedMessages = messages.slice(0, MODEL_CONFIG.MAX_BATCH_SIZE);
       
       // 분석 수행
       const result = await analyzeCommitMessages(limitedMessages);
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
       }
       
       // 분석할 코드 변경 수 제한
-      const limitedChanges = changes.slice(0, ANALYSIS_CONFIG.MAX_FILES_TO_ANALYZE);
+      const limitedChanges = changes.slice(0, MODEL_CONFIG.MAX_BATCH_SIZE);
       
       console.log(`📁 코드 분석 API 호출됨 - ${limitedChanges.length}개 파일 분석 시작`);
       
@@ -62,87 +65,80 @@ export async function POST(request: NextRequest) {
           owner: ownerParam, 
           repo: repoParam, 
           userAnalysis: userAnalysisParam = false,
+          onlyUserCommits: onlyUserCommitsParam = false,
           token = null
         } = parsed;
         
-        // repository 분석은 아직 직접 함수가 구현되지 않았으므로 더미 데이터로 응답
-        console.log(`저장소 분석 요청: ${ownerParam}/${repoParam}`);
+        // 본격적인 저장소 분석 시작
+        const authHeader = request.headers.get('authorization');
+        let accessToken = '';
         
-        // 결과 객체 생성 - 모든 필수 필드를 포함
-        const result: AnalysisResult = {
-          repositoryInfo: {
-            owner: ownerParam,
-            repo: repoParam,
-            isUserAnalysis: userAnalysisParam === true || userAnalysisParam === 'true'
-          },
-          developerProfile: {
-            totalCommits: 0,
-            contributors: [],
-            commitCategories: {},
-            activityPeriod: ""
-          },
-          techStack: [],
-          domains: [],
-          characteristics: [],
-          developmentPattern: {
-            commitFrequency: '',
-            developmentCycle: '',
-            teamDynamics: '',
-            workPatterns: {
-              time: '',
-              dayOfWeek: '',
-              mostActiveDay: '',
-              mostActiveHour: 0
-            }
-          },
-          keyFeatures: [],
-          insights: [],
-          recommendations: [],
-          summary: '프로젝트 정보를 분석 중입니다.',
-          meta: {
-            generatedAt: new Date().toISOString(),
-            version: "1.0.0"
-          }
-        };
-        
-        // 코드 품질 메트릭 추가 - 더 현실적인 값 사용
-        try {
-          // 더 현실적인 기본값으로 코드 품질 메트릭 설정
-          const codeQualityMetrics = {
-            readability: 55 + Math.floor(Math.random() * 25),         // 55-79
-            maintainability: 50 + Math.floor(Math.random() * 25),     // 50-74
-            testCoverage: 30 + Math.floor(Math.random() * 40),        // 30-69
-            documentation: 40 + Math.floor(Math.random() * 30),       // 40-69
-            architecture: 45 + Math.floor(Math.random() * 30),        // 45-74
-          };
-          
-          // 타입에 맞게 결과 객체에 추가
-          result.codeQualityMetrics = codeQualityMetrics;
-          result.codeQuality = calculateOverallQuality(codeQualityMetrics);
-          
-          console.log('코드 품질 메트릭 추가 완료:', {
-            codeQuality: result.codeQuality,
-            metrics: result.codeQualityMetrics
-          });
-        } catch (error) {
-          console.error('코드 품질 메트릭 계산 오류:', error);
-          // 오류 시에도 기본값 설정 (너무 높지 않은 값)
-          result.codeQualityMetrics = {
-            readability: 60,
-            maintainability: 55,
-            testCoverage: 45,
-            documentation: 50,
-            architecture: 55
-          };
-          result.codeQuality = 53;
+        // Authorization 헤더에서 토큰 추출
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          accessToken = authHeader.slice(7); // 'Bearer ' 부분 제거
+          console.log('Authorization 헤더에서 토큰 추출 성공');
+        }
+        // 요청 본문의 token 파라미터 사용
+        else if (token) {
+          accessToken = token;
+          console.log('요청 본문의 token 파라미터 사용');
         }
         
-        return NextResponse.json(result);
+        // 토큰이 없으면 오류 반환
+        if (!accessToken) {
+          console.error('인증 토큰 없음: Authorization 헤더 누락 또는 토큰 파라미터 없음');
+          return NextResponse.json(
+            { error: '저장소 분석을 위한 인증 토큰이 필요합니다. GitHub에 로그인했는지 확인해주세요.' },
+            { status: 401 }
+          );
+        }
+        
+        try {
+          // 세션에서 사용자 정보 가져오기
+          let userLogin: string | undefined = undefined;
+          let userEmail: string | undefined = undefined;
+          
+          try {
+            const session = await getServerSession(authOptions);
+            
+            console.log('세션 정보:', session ? '있음' : '없음');
+            if (session) {
+              console.log('사용자 정보:', session.user?.name || '이름 없음');
+              console.log('액세스 토큰:', session.accessToken ? '있음' : '없음');
+            }
+            
+            userLogin = session?.user?.name || undefined;
+            userEmail = session?.user?.email || undefined;
+          } catch (sessionError) {
+            console.error('세션 정보 가져오기 실패:', sessionError);
+          }
+          
+          console.log(`저장소 분석 요청: ${ownerParam}/${repoParam}`);
+          console.log(`분석 옵션: 사용자 분석=${userAnalysisParam}, 내 커밋만=${onlyUserCommitsParam}`);
+          console.log(`사용자 정보: 로그인=${userLogin}, 이메일=${userEmail || '없음'}`);
+          
+          // 저장소 분석 시작
+          const result = await analyzeRepository(accessToken, ownerParam, repoParam, {
+            personalAnalysis: userAnalysisParam === true || userAnalysisParam === 'true',
+            userLogin,
+            userEmail,
+            onlyUserCommits: onlyUserCommitsParam === true || onlyUserCommitsParam === 'true'
+          });
+          
+          // 결과 반환
+          return NextResponse.json(result);
+        } catch (analysisError: any) {
+          console.error('저장소 분석 중 오류 발생:', analysisError);
+          return NextResponse.json(
+            { error: `저장소 분석 중 오류: ${analysisError.message}` },
+            { status: 500 }
+          );
+        }
       } catch (error) {
-        console.error('저장소 분석 중 오류:', error);
+        console.error('저장소 분석 요청 처리 중 오류:', error);
         return NextResponse.json(
-          { error: '저장소 분석 중 오류가 발생했습니다.' },
-          { status: 500 }
+          { error: '저장소 분석 요청 형식이 올바르지 않습니다.' },
+          { status: 400 }
         );
       }
     }
@@ -200,39 +196,13 @@ function analyzeDeveloperProfile(promptData: any) {
   try {
     console.log('개발자 프로필 기능이 비활성화되었습니다.');
     
-    // 기본 응답 반환 (개인 분석 기준)
-    return {
-      workStyle: '개발자 프로필 분석 기능이 비활성화되었습니다.',
-      strengths: ['이 기능은 더 이상 사용할 수 없습니다.'],
-      growthAreas: ['이 기능은 더 이상 사용할 수 없습니다.'],
-      collaborationPattern: '기능 비활성화',
-      communicationStyle: '기능 비활성화',
-      skills: {
-        '기술 역량': 0,
-        '문제 해결': 0,
-        '코드 품질': 0, 
-        '생산성': 0,
-        '적응력': 0
-      }
-    };
+    // 개발자 프로필 분석 기능이 비활성화되었으므로 오류 발생
+    throw new Error('개발자 프로필 분석 기능은 더 이상 지원되지 않습니다.');
   } catch (error) {
     console.error('개발자 프로필 분석 오류:', error);
     
-    // 오류 시 기본 응답 (개인 분석 기준)
-    return {
-      workStyle: '개발자 프로필 분석 기능이 비활성화되었습니다.',
-      strengths: ['이 기능은 더 이상 사용할 수 없습니다.'],
-      growthAreas: ['이 기능은 더 이상 사용할 수 없습니다.'],
-      collaborationPattern: '기능 비활성화',
-      communicationStyle: '기능 비활성화',
-      skills: {
-        '기술 역량': 0,
-        '문제 해결': 0,
-        '코드 품질': 0,
-        '생산성': 0,
-        '적응력': 0
-      }
-    };
+    // 오류 발생 시 명확한 오류 메시지와 함께 빈 응답 반환
+    throw new Error('개발자 프로필 분석 기능은 더 이상 지원되지 않습니다.');
   }
 }
 
@@ -244,42 +214,14 @@ function analyzeDevelopmentPattern(promptData: any) {
     const userLogin = promptData?.userLogin || '';
     
     if (!commits || commits.length === 0) {
-      console.log('분석할 커밋 데이터가 없습니다. 기본 응답을 반환합니다.');
-      return {
-        peakProductivityTime: '데이터가 부족하여 정확한 분석이 어렵습니다',
-        commitFrequency: '데이터가 부족하여 정확한 분석이 어렵습니다',
-        codeReviewStyle: '데이터가 부족하여 정확한 분석이 어렵습니다',
-        iterationSpeed: '데이터가 부족하여 정확한 분석이 어렵습니다',
-        focusAreas: ['데이터가 부족하여 정확한 분석이 어렵습니다'],
-        workPatterns: {
-          time: '데이터가 부족하여 정확한 분석이 어렵습니다',
-          dayOfWeek: '데이터가 부족하여 정확한 분석이 어렵습니다',
-          mostActiveDay: '',
-          mostActiveHour: 0
-        },
-        teamDynamics: '데이터가 부족하여 정확한 분석이 어렵습니다',
-        developmentCycle: '데이터가 부족하여 정확한 분석이 어렵습니다'
-      };
+      console.log('분석할 커밋 데이터가 없습니다.');
+      throw new Error('분석할 커밋 데이터가 없습니다.');
     }
     
     // 최소 데이터 요구사항 확인 (의미 있는 분석을 위해 최소 5개의 커밋 필요)
     if (commits.length < 5) {
-      console.log('의미 있는 분석을 위한 커밋 데이터가 부족합니다. 제한된 응답을 반환합니다.');
-      return {
-        peakProductivityTime: '데이터가 부족하여 정확한 분석이 어렵습니다',
-        commitFrequency: `${commits.length}개의 커밋이 있습니다. 의미있는 분석을 위해 더 많은 커밋 데이터가 필요합니다.`,
-        codeReviewStyle: '데이터가 부족하여 정확한 분석이 어렵습니다',
-        iterationSpeed: '데이터가 부족하여 정확한 분석이 어렵습니다',
-        focusAreas: ['데이터가 부족하여 정확한 분석이 어렵습니다'],
-        workPatterns: {
-          time: '데이터가 부족하여 정확한 분석이 어렵습니다',
-          dayOfWeek: '데이터가 부족하여 정확한 분석이 어렵습니다',
-          mostActiveDay: '',
-          mostActiveHour: 0
-        },
-        teamDynamics: '데이터가 부족하여 정확한 분석이 어렵습니다',
-        developmentCycle: '데이터가 부족하여 정확한 분석이 어렵습니다'
-      };
+      console.log('의미 있는 분석을 위한 커밋 데이터가 부족합니다.');
+      throw new Error(`${commits.length}개의 커밋이 있습니다. 의미있는 분석을 위해 더 많은 커밋 데이터가 필요합니다.`);
     }
     
     // 커밋 구조 로깅으로 디버깅

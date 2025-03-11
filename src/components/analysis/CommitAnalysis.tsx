@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import PieChart from '@/components/charts/PieChart'
+import PieChart from '@/components/analysis/charts/PieChart'
 
 // 커밋 분석 데이터 타입 정의
 type CommitAnalysisData = {

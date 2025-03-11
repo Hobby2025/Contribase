@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import LineChart from '@/components/charts/LineChart'
+import LineChart from '@/components/analysis/charts/LineChart'
 
 // 개발 패턴 타입 정의
 type DevelopmentPatternData = {

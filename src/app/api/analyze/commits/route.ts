@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeCommitMessages } from '@/lib/modelUtils';
-import { ANALYSIS_CONFIG } from '@/lib/config';
+import { MODEL_CONFIG } from '@/utils/config';
 
 /**
  * POST /api/analyze/commits
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
     
     // 분석할 커밋 메시지 수 제한
-    const limitedMessages = commitMessages.slice(0, ANALYSIS_CONFIG.MAX_COMMITS_TO_ANALYZE);
+    const limitedMessages = commitMessages.slice(0, MODEL_CONFIG.MAX_BATCH_SIZE);
     
     // 분석 수행
     const result = await analyzeCommitMessages(limitedMessages);

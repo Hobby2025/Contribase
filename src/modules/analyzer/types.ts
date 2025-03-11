@@ -19,6 +19,7 @@ export interface AnalysisResult {
     }[];
     commitCategories: Record<string, number>;
     activityPeriod: string;
+    userLanguages?: { language: string; percentage: number }[];
   };
   
   // 기술 스택
