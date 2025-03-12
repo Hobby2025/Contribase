@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { signIn, signOut, useSession } from 'next-auth/react'
 import Image from 'next/image'
-import { useTheme } from './ThemeProvider'
-import { APP_VERSION } from '../lib/config'
+import { useTheme } from './common/ThemeProvider'
+import { APP_VERSION } from '@/utils/config'
 
 // 메뉴 항목 타입 정의
 type MenuItem = {

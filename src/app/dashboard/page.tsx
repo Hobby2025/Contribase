@@ -44,6 +44,9 @@ export default function Dashboard() {
   const [isAuthLoading, setIsAuthLoading] = useState(false) // 로딩 상태 추가
   const [reloadKey, setReloadKey] = useState(0) // 저장소 목록 새로고침을 위한 키
   
+  // 사용자가 자신의 커밋만 분석할 수 있도록 상태 추가
+  const [onlyUserCommits, setOnlyUserCommits] = useState(true);
+
   // URL 파라미터 확인
   useEffect(() => {
     // 브라우저에서만 실행
@@ -215,10 +218,25 @@ export default function Dashboard() {
     }
   }, [status, session])
 
-  // 저장소 분석하기
+  // 저장소 분석 함수 수정
   const analyzeRepository = (owner: string, repo: string) => {
-    router.push(`/dashboard/analysis/${owner}/${repo}`)
-  }
+    // 분석 시작 상태 설정
+    setIsLoading(true);
+    setError(null);
+    
+    // 세션에서 액세스 토큰 확인
+    if (!session?.accessToken) {
+      setError('GitHub 인증 토큰이 없습니다. 로그아웃 후 다시 로그인해 주세요.');
+      setIsLoading(false);
+      return;
+    }
+    
+    // 프로그레스 페이지로 이동 (분석 진행 상황을 보여주기 위함)
+    // 분석 옵션을 URL 파라미터로 전달
+    router.push(`/dashboard/analysis/${owner}/${repo}?onlyUserCommits=${onlyUserCommits}`);
+    
+    // API 호출은 분석 페이지에서 처리
+  };
 
   // 검색 필터 및 탭 필터
   const filteredRepositories = repositories.filter((repo) => {
@@ -712,6 +730,19 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* 탭 상단에 추가 */}
+      <div className="flex items-center justify-end mb-3">
+        <label className="flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            className="form-checkbox h-4 w-4 text-primary-500 rounded"
+            checked={onlyUserCommits}
+            onChange={(e) => setOnlyUserCommits(e.target.checked)}
+          />
+          <span className="ml-2 text-sm text-gray-700">내 커밋만 분석하기</span>
+        </label>
+      </div>
 
       {/* 저장소 목록 */}
       {renderRepositories()}

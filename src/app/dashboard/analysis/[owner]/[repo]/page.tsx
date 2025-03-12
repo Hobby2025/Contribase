@@ -4,7 +4,7 @@ import React, { useState, useEffect, use } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { AnalysisResult } from '@/lib/analyzer'
+import { AnalysisResult } from '@/modules/analyzer'
 import {
   TechStackSection,
   ContributionAnalysis,
@@ -13,6 +13,7 @@ import {
   AIProjectDefinition
 } from '@/components/analysis'
 import Image from 'next/image'
+import AnalysisLoading from '@/components/analysis/AnalysisLoading'
 
 // 우선순위 색상 매핑
 const PRIORITY_COLORS: Record<string, string> = {
@@ -78,22 +79,13 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
       // 저장소 분석 상태 확인 먼저 시도
       const checkExistingAnalysis = async () => {
         try {
-          const repoKey = `${owner}/${repo}`;
-          const response = await fetch(`/api/analysis/progress?repo=${encodeURIComponent(repoKey)}`);
+          // 옵션에서 onlyUserCommits 값 가져오기
+          const searchParams = new URLSearchParams(window.location.search);
+          const onlyUserCommits = searchParams.get('onlyUserCommits') === 'true';
+          console.log('분석 옵션 확인: 내 커밋만 =', onlyUserCommits);
           
-          if (response.ok) {
-            const data = await response.json();
-            
-            if (data.completed && data.result) {
-              console.log('기존 분석 결과 발견, 새 분석 시작하지 않음');
-              setProgress(data);
-              setAnalysis(data.result);
-              setIsLoading(false);
-              setAnalysisRequested(true);
-              return;
-            }
-          }
-          // 기존 분석 결과가 없거나 완료되지 않은 경우에만 새 분석 시작
+          // 항상 새 분석 시작
+          console.log('새 분석을 시작합니다.');
           setAnalysisRequested(true);
           runAnalysis();
         } catch (err) {
@@ -147,7 +139,7 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           checkAttempts++;
           console.log(`진행 상태 확인 중... ${owner}/${repo} (시도 ${checkAttempts}/${maxCheckAttempts})`);
           
-          // 정확한 repo 키 설정 - 대소문자 주의
+          // 분석 정보를 위한 확실한 키 포맷 (owner/repo)
           const repoKey = `${owner}/${repo}`;
           
           // 타임아웃 있는 fetch 함수
@@ -155,7 +147,11 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
           
           try {
-            const response = await fetch(`/api/analysis/progress?repo=${encodeURIComponent(repoKey)}`, {
+            // 진행 상태 API 호출 시 정확한 형식으로 전달
+            const progressUrl = `/api/analysis/progress?repo=${encodeURIComponent(owner + '/' + repo)}`;
+            console.log('진행 상태 요청 URL:', progressUrl);
+            
+            const response = await fetch(progressUrl, {
               signal: controller.signal
             });
             
@@ -187,7 +183,25 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
             // 오류가 있으면 오류 설정
             else if (data.error) {
               console.error('분석 오류:', data.error);
-              setError(data.error.message);
+              // 오류 객체가 있는지 확인하고 안전하게 메시지 추출
+              const errorMessage = typeof data.error === 'object' && data.error !== null && 'message' in data.error
+                ? data.error.message
+                : typeof data.error === 'string' 
+                  ? data.error 
+                  : '알 수 없는 오류가 발생했습니다';
+                  
+              // 네트워크 관련 오류인 경우 친절한 메시지 표시
+              const isNetworkError = 
+                errorMessage.includes('연결이 끊어') || 
+                errorMessage.includes('시간이 초과') ||
+                errorMessage.includes('other side closed') ||
+                errorMessage.includes('rate limit');
+                
+              const userMessage = isNetworkError
+                ? `서버와의 연결에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요. (${errorMessage})`
+                : errorMessage;
+              
+              setError(userMessage);
               setIsLoading(false);
               return; // 중요: 오류가 있는 경우 함수 종료
             }
@@ -287,24 +301,13 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
         throw new Error('인증 토큰이 없습니다.');
       }
       
-      // 이미 분석이 완료된 상태인지 한번 더 확인
-      const repoKey = `${owner}/${repo}`;
-      try {
-        const existingCheck = await fetch(`/api/analysis/progress?repo=${encodeURIComponent(repoKey)}`);
-        if (existingCheck.ok) {
-          const checkData = await existingCheck.json();
-          if (checkData.completed && checkData.result) {
-            console.log('분석이 이미 완료되었습니다. 중복 요청하지 않습니다.');
-            setProgress(checkData);
-            setAnalysis(checkData.result);
-            setIsLoading(false);
-            return;
-          }
-        }
-      } catch (checkErr) {
-        console.error('기존 분석 결과 확인 오류:', checkErr);
-        // 오류 발생 시에도 계속 진행 (새 분석 시도)
-      }
+      // URL 파라미터에서 onlyUserCommits 옵션 값 가져오기
+      const searchParams = new URLSearchParams(window.location.search);
+      const onlyUserCommits = searchParams.get('onlyUserCommits') === 'true';
+      console.log('분석 옵션: 내 커밋만 분석 =', onlyUserCommits);
+      
+      // 새로운 분석 요청 즉시 시작
+      console.log(`새 분석 요청 시작: ${owner}/${repo}, 옵션: 내 커밋만=${onlyUserCommits}`);
       
       // API 엔드포인트를 통해 분석 요청
       const controller = new AbortController();
@@ -323,7 +326,8 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
             options: {
               personalAnalysis: true,
               userLogin: session.user?.name || undefined,
-              userEmail: session.user?.email || undefined
+              userEmail: session.user?.email || undefined,
+              onlyUserCommits: onlyUserCommits
             }
           }),
           signal: controller.signal
@@ -354,6 +358,106 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
       setIsLoading(false);
     }
   };
+
+  // 개발 패턴 데이터 디버깅 추가 (이전 조건 검사 내부 삭제)
+  // 분석 결과가 로드되었을 때만 로깅
+  useEffect(() => {
+    if (analysis) {
+      console.log('개발 패턴 데이터:', JSON.stringify(analysis.developmentPattern, null, 2));
+      console.log('분석 결과 전체 구조:', Object.keys(analysis));
+      
+      // aiAnalyzed 속성 여부 확인
+      if ('aiAnalyzed' in analysis.repositoryInfo) {
+        console.log('aiAnalyzed 속성 확인:', analysis.repositoryInfo.aiAnalyzed);
+      }
+    }
+  }, [analysis]);
+  
+  // 분석 데이터가 없으면 로딩 상태 표시
+  if (!analysis) {
+    // 오류가 있을 경우 오류 메시지와 재시도 버튼 표시
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] bg-white p-8 rounded-lg shadow-md text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <h2 className="text-xl font-bold text-red-700 mb-2">분석 중 오류가 발생했습니다</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button 
+            onClick={runAnalysis}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            다시 분석하기
+          </button>
+        </div>
+      );
+    }
+    
+    return <AnalysisLoading 
+      message="분석 결과를 불러오는 중입니다..." 
+      isIndeterminate={true}
+    />;
+  }
+  
+  // 분석 결과를 확인하고 AI 분석이 완료되지 않았으면 로딩 표시
+  if (!analysis.repositoryInfo) {
+    console.log('분석 결과가 없습니다.');
+    return <AnalysisLoading 
+      message="분석 결과를 불러오는 중입니다..." 
+      isIndeterminate={true}
+    />;
+  }
+  
+  // 분석 결과가 있지만 aiProjectType이 없거나 Unknown인 경우
+  // 이 경우 분석은 완료되었으나 중요 데이터가 누락된 경우
+  if (!analysis.repositoryInfo.aiProjectType || analysis.repositoryInfo.aiProjectType === "Unknown") {
+    console.log('중요 분석 결과가 누락되었습니다:', analysis.repositoryInfo);
+    console.log('분석 메타 정보:', analysis.meta);
+    
+    // 에러가 있는 경우 에러 메시지 표시
+    if (analysis.meta?.error) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] bg-white p-8 rounded-lg shadow-md text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <h2 className="text-xl font-bold text-red-700 mb-2">분석 중 오류가 발생했습니다</h2>
+          <p className="text-gray-600 mb-6">{analysis.meta.error}</p>
+          <button 
+            onClick={runAnalysis}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            다시 분석하기
+          </button>
+        </div>
+      );
+    }
+    
+    // 분석은 완료되었지만 중요 데이터가 누락된 경우 재분석 버튼 표시
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] bg-white p-8 rounded-lg shadow-md text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-yellow-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h2 className="text-xl font-bold text-yellow-700 mb-2">분석 결과가 불완전합니다</h2>
+        <p className="text-gray-600 mb-6">분석이 완료되었으나 일부 중요 데이터가 누락되었습니다. 다시 분석을 시도해보세요.</p>
+        <button 
+          onClick={runAnalysis}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+        >
+          다시 분석하기
+        </button>
+      </div>
+    );
+  }
+
+  // 정상적인 분석 결과 디버깅
+  console.log('분석 결과 확인:', {
+    projectType: analysis.repositoryInfo.aiProjectType,
+    hasDevPattern: !!analysis.developmentPattern,
+    hasKeyFeatures: analysis.keyFeatures?.length > 0
+  });
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
@@ -534,6 +638,7 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
             techStack={analysis.techStack} 
             analysisType={analysis.repositoryInfo.isUserAnalysis ? "personal" : "repository"}
             userLogin={session?.user?.name || undefined}
+            userLanguages={analysis.developerProfile.userLanguages}
           />
 
           {/* 기여도 분석 */}
@@ -635,6 +740,7 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           />
 
           {/* 개발 패턴 */}
+          {(() => { console.log('개발 패턴 데이터:', analysis.developmentPattern); return null; })()}
           <DevelopmentPattern 
             developmentPattern={analysis.developmentPattern} 
             analysisType="personal"
@@ -644,42 +750,23 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
           {/* PDF 다운로드 버튼 */}
           <div className="flex justify-center mt-8">
             <button 
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-400 cursor-not-allowed opacity-70"
               onClick={() => {
-                // 분석 결과가 없는 경우 먼저 확인
-                if (!analysis || Object.keys(analysis).length === 0) {
-                  alert('분석 결과가 아직 준비되지 않았습니다. 분석을 먼저 실행해주세요.');
-                  return;
-                }
-
-                // 성공적으로 완료된 분석이 있는지 확인
-                if (!analysis.summary || 
-                    !analysis.techStack || 
-                    analysis.techStack.length === 0 ||
-                    !analysis.repositoryInfo.aiProjectType) {
-                  alert('분석 결과가 완전하지 않습니다. 분석을 다시 실행해주세요.');
-                  return;
-                }
-
-                // 모든 조건을 통과했다면 PDF 다운로드 URL 열기
-                const pdfUrl = `/api/analysis/pdf/${owner}/${repo}`;
-                console.log('PDF 다운로드 요청:', pdfUrl);
-                
-                // localStorage에 현재 분석 결과 임시 저장 (PDF 생성 시 사용)
-                try {
-                  localStorage.setItem('current_analysis_data', JSON.stringify(analysis));
-                  console.log('분석 결과 임시 저장 완료');
-                } catch (err) {
-                  console.error('분석 결과 임시 저장 실패:', err);
-                }
-                
-                window.open(pdfUrl, '_blank');
+                alert('PDF 다운로드 기능이 일시적으로 비활성화되었습니다. 기능 개선이 완료될 때까지 잠시 사용할 수 없습니다.');
               }}
+              disabled={true}
+              title="PDF 다운로드 기능이 일시적으로 비활성화되었습니다"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
+              <svg 
+                className="w-4 h-4 mr-2" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              PDF로 다운로드
+              PDF 다운로드
             </button>
           </div>
         </div>

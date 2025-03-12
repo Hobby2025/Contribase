@@ -1,156 +1,112 @@
 // GPT 기반 코드 품질 분석 유틸리티
 
-import { AnalysisResult } from "@/types/analysis";
+import { AnalysisResult } from "@/modules/analyzer";
+import { callOpenAI, createCodeQualityPrompt } from "./ai/openAiUtils";
 
 /**
- * 프로젝트 특성에 따라 코드 품질 메트릭을 생성하는 함수
- * 실제 프로젝트 데이터와 특성을 기반으로 코드 품질 점수를 계산
+ * AI 기반 코드 품질 분석을 수행하는 함수
  */
-export function analyzeCodeQuality(analysis: AnalysisResult): {
+export async function analyzeCodeQuality(analysis: AnalysisResult): Promise<{
   readability: number;
   maintainability: number;
   testCoverage: number;
   documentation: number;
   architecture: number;
-} {
-  console.log('코드 품질 분석 시작 - 입력 데이터 확인:', JSON.stringify({
-    hasCharacteristics: Boolean(analysis.characteristics?.length),
-    hasTechStack: Boolean(analysis.techStack?.length),
-    hasKeyFeatures: Boolean(analysis.keyFeatures?.length)
-  }));
+}> {
+  try {
+    console.log('[AI 분석] 코드 품질 분석 시작');
 
-  // 프로젝트 특성 및 기술 스택 분석
-  const characteristics = analysis.characteristics || [];
-  const techStack = analysis.techStack || [];
-  const keyFeatures = analysis.keyFeatures || [];
-  
-  // 기술 스택이 비어있거나 요구 사항을 충족하지 않으면 기본값 반환
-  if (!techStack.length) {
-    console.log('기술 스택이 비어있어 기본 점수 반환');
+    // 분석에 필요한 데이터 준비
+    const analysisData = {
+      techStack: analysis.techStack || [],
+      characteristics: analysis.characteristics || [],
+      keyFeatures: analysis.keyFeatures || [],
+      commitCategories: analysis.developerProfile?.commitCategories || {},
+      insights: analysis.insights || [],
+      summary: analysis.summary || ''
+    };
+
+    // 커밋 카테고리 분석
+    const commitStats = {
+      total: Object.values(analysisData.commitCategories).reduce((a, b) => a + b, 0),
+      refactoring: analysisData.commitCategories['리팩토링'] || 0,
+      test: analysisData.commitCategories['테스트'] || 0,
+      docs: analysisData.commitCategories['문서화'] || 0,
+      feature: analysisData.commitCategories['기능'] || 0
+    };
+
+    // 기술 스택 분석
+    const techAnalysis = {
+      hasTypescript: analysisData.techStack.some(t => t.name.toLowerCase().includes('typescript')),
+      hasTests: analysisData.techStack.some(t => 
+        t.name.toLowerCase().includes('jest') || 
+        t.name.toLowerCase().includes('test') ||
+        t.name.toLowerCase().includes('cypress')
+      ),
+      hasLinter: analysisData.techStack.some(t => 
+        t.name.toLowerCase().includes('eslint') || 
+        t.name.toLowerCase().includes('prettier')
+      ),
+      hasDocs: analysisData.techStack.some(t => 
+        t.name.toLowerCase().includes('doc') || 
+        t.name.toLowerCase().includes('swagger')
+      )
+    };
+
+    // 통합 AI 유틸리티를 사용하여 프롬프트 생성 및 호출
+    const aiPrompt = createCodeQualityPrompt({
+      techStack: analysisData.techStack,
+      commitStats,
+      techAnalysis,
+      keyFeatures: analysisData.keyFeatures,
+      insights: analysisData.insights,
+      summary: analysisData.summary
+    });
+
+    // GPT-4 Mini API 호출
+    const response = await callOpenAI(aiPrompt);
+    console.log('[AI 분석] 코드 품질 분석 결과:', response);
+
+    // 응답 형식 변환 (한글 키 → 영문 키)
+    const responseMetrics = {
+      readability: response['가독성']?.['점수'] || 0,
+      maintainability: response['유지보수성']?.['점수'] || 0,
+      testCoverage: response['테스트 커버리지']?.['점수'] || 0,
+      documentation: response['문서화']?.['점수'] || 0,
+      architecture: response['아키텍처']?.['점수'] || 0
+    };
+
+    // 기본 점수 계산 (실제 데이터 기반)
+    const baseScores = {
+      readability: techAnalysis.hasLinter ? 65 : 45,
+      maintainability: techAnalysis.hasTypescript ? 60 : 40,
+      testCoverage: techAnalysis.hasTests ? 55 : 35,
+      documentation: techAnalysis.hasDocs ? 60 : 40,
+      architecture: 50
+    };
+
+    // AI 분석 결과와 기본 점수를 결합
+    const finalScores = {
+      readability: Math.round((baseScores.readability + responseMetrics.readability) / 2),
+      maintainability: Math.round((baseScores.maintainability + responseMetrics.maintainability) / 2),
+      testCoverage: Math.round((baseScores.testCoverage + responseMetrics.testCoverage) / 2),
+      documentation: Math.round((baseScores.documentation + responseMetrics.documentation) / 2),
+      architecture: Math.round((baseScores.architecture + responseMetrics.architecture) / 2)
+    };
+
+    return finalScores;
+  } catch (error) {
+    console.error('[AI 분석] 코드 품질 분석 중 오류 발생:', error);
+    
+    // 오류 발생 시 기본값 반환
     return {
-      readability: 65,
-      maintainability: 60,
-      testCoverage: 50,
-      documentation: 55,
-      architecture: 60
+      readability: 50,
+      maintainability: 45,
+      testCoverage: 40,
+      documentation: 45,
+      architecture: 50
     };
   }
-  
-  // 기술 스택 기반 평가
-  const hasTestingFrameworks = techStack.some(tech => 
-    tech.name.toLowerCase().includes('test') || 
-    tech.name.toLowerCase().includes('jest') || 
-    tech.name.toLowerCase().includes('mocha') ||
-    tech.name.toLowerCase().includes('junit')
-  );
-  
-  const hasCICD = techStack.some(tech => 
-    tech.name.toLowerCase().includes('jenkins') || 
-    tech.name.toLowerCase().includes('travis') || 
-    tech.name.toLowerCase().includes('github action') ||
-    tech.name.toLowerCase().includes('gitlab ci')
-  );
-  
-  const hasTypedLanguages = techStack.some(tech => 
-    tech.name.toLowerCase().includes('typescript') || 
-    tech.name.toLowerCase().includes('java') || 
-    tech.name.toLowerCase().includes('c#') ||
-    tech.name.toLowerCase().includes('kotlin')
-  );
-  
-  const hasDocTools = techStack.some(tech => 
-    tech.name.toLowerCase().includes('doc') || 
-    tech.name.toLowerCase().includes('jsdoc') || 
-    tech.name.toLowerCase().includes('swagger') ||
-    tech.name.toLowerCase().includes('javadoc')
-  );
-  
-  // 특성 기반 평가
-  const codeQualityCharacteristic = characteristics.find(c => 
-    c.type === '코드 품질' || 
-    c.description.includes('코드 품질') || 
-    c.description.includes('리팩토링')
-  );
-  
-  const isEnterpriseProject = characteristics.some(c => 
-    c.description.includes('엔터프라이즈') || 
-    c.description.includes('기업용')
-  );
-  
-  const isLongTermProject = characteristics.some(c => 
-    c.description.includes('장기') || 
-    c.description.includes('유지보수')
-  );
-  
-  // 프로젝트 성격에 따른 기본 점수 계산
-  const baseScores = {
-    readability: 55, // 기본 가독성 점수 (65에서 55로 낮춤)
-    maintainability: 50, // 기본 유지보수성 점수 (60에서 50으로 낮춤)
-    testCoverage: hasTestingFrameworks ? 55 : 35, // 테스트 프레임워크 유무에 따른 기본값 (45/65에서 35/55로 낮춤)
-    documentation: hasDocTools ? 60 : 45, // 문서화 도구 유무에 따른 기본값 (55/70에서 45/60으로 낮춤)
-    architecture: 50 // 기본 구조화 점수 (60에서 50으로 낮춤)
-  };
-  
-  // 프로젝트 특성에 따른 점수 조정
-  let qualityScores = { ...baseScores };
-  
-  // 코드 품질 특성이 있으면 가산점
-  if (codeQualityCharacteristic) {
-    const bonus = Math.min(15, codeQualityCharacteristic.score * 1.5);
-    qualityScores.readability += bonus;
-    qualityScores.maintainability += bonus;
-    qualityScores.architecture += bonus;
-  }
-  
-  // 타입 언어 사용 시 가독성/유지보수성 향상
-  if (hasTypedLanguages) {
-    qualityScores.readability += 12;
-    qualityScores.maintainability += 15;
-  }
-  
-  // CI/CD 사용 시 테스트 커버리지 가산점
-  if (hasCICD) {
-    qualityScores.testCoverage += 12;
-    qualityScores.maintainability += 5;
-  }
-  
-  // 장기 프로젝트는 문서화와 아키텍처에 더 신경썼을 가능성 높음
-  if (isLongTermProject) {
-    qualityScores.documentation += 10;
-    qualityScores.architecture += 8;
-  }
-  
-  // 엔터프라이즈 프로젝트는 전체적으로 품질 요구사항이 높음
-  if (isEnterpriseProject) {
-    qualityScores.readability += 8;
-    qualityScores.maintainability += 10;
-    qualityScores.testCoverage += 15;
-    qualityScores.documentation += 12;
-    qualityScores.architecture += 15;
-  }
-  
-  // 키 기능 수에 따른 아키텍처 복잡도 반영 (부정적 영향 강화)
-  if (keyFeatures.length > 5) {
-    qualityScores.architecture -= Math.min(15, (keyFeatures.length - 5) * 3);
-    qualityScores.maintainability -= Math.min(12, (keyFeatures.length - 5) * 2);
-  }
-  
-  // 기술 스택 다양성에 따른 복잡도 반영
-  if (techStack.length > 10) {
-    qualityScores.maintainability -= Math.min(10, (techStack.length - 10) * 1.5);
-    qualityScores.documentation -= Math.min(8, (techStack.length - 10));
-  }
-  
-  // 최종 점수 범위 조정 (0-100 사이)
-  const finalScores = {
-    readability: Math.max(0, Math.min(100, Math.round(qualityScores.readability))),
-    maintainability: Math.max(0, Math.min(100, Math.round(qualityScores.maintainability))),
-    testCoverage: Math.max(0, Math.min(100, Math.round(qualityScores.testCoverage))),
-    documentation: Math.max(0, Math.min(100, Math.round(qualityScores.documentation))),
-    architecture: Math.max(0, Math.min(100, Math.round(qualityScores.architecture)))
-  };
-  
-  return finalScores;
 }
 
 /**
@@ -163,7 +119,6 @@ export function calculateOverallQuality(metrics: {
   documentation: number;
   architecture: number;
 }): number {
-  // 각 메트릭의 가중치 설정
   const weights = {
     readability: 0.2,
     maintainability: 0.3,
@@ -172,7 +127,6 @@ export function calculateOverallQuality(metrics: {
     architecture: 0.15
   };
   
-  // 가중 평균 계산
   const weightedScore = 
     metrics.readability * weights.readability +
     metrics.maintainability * weights.maintainability +

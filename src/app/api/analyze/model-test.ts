@@ -1,8 +1,9 @@
+import { NextRequest, NextResponse } from 'next/server';
 import {
   analyzeCommitMessages,
   analyzeCodeChanges,
   getModelStatus
-} from '@/lib/modelUtils.client';
+} from '@/utils/modelUtils.client';
 
 /**
  * AI 모델 테스트 함수

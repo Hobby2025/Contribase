@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import PieChart from '@/components/charts/PieChart'
+import PieChart from '@/components/analysis/charts/PieChart'
 
 // 상수 값
 const CATEGORY_COLORS = {

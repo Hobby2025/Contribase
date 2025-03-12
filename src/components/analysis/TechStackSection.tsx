@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import PieChart from '@/components/charts/PieChart'
+import PieChart from '@/components/analysis/charts/PieChart'
 
 // 기술 스택 타입 정의
 type TechStack = {
@@ -16,20 +16,30 @@ interface TechStackSectionProps {
   techStack: TechStack[];
   analysisType?: 'personal' | 'repository';
   userLogin?: string;
+  userLanguages?: { language: string; percentage: number }[];
 }
 
 export default function TechStackSection({ 
   techStack, 
   analysisType = 'repository', 
-  userLogin 
+  userLogin,
+  userLanguages
 }: TechStackSectionProps) {
-  // 언어 타입의 기술 스택만 필터링
-  const languageTechStack = techStack.filter(tech => tech.type === 'language');
+  // 사용자 언어 데이터가 있으면 그것을 사용, 없으면 기술 스택에서 언어 타입만 필터링
+  const languageTechStack = userLanguages && userLanguages.length > 0 
+    ? userLanguages.map(lang => ({
+        name: lang.language,
+        type: 'language',
+        usage: lang.percentage,
+        normalizedUsage: lang.percentage // 이미 백분율이므로 그대로 사용
+      }))
+    : techStack.filter(tech => tech.type === 'language');
   
   // 언어 사용 비율 정규화 - 합계가 100%가 되도록 조정
   let normalizedLanguageTechStack = [...languageTechStack];
   
-  if (normalizedLanguageTechStack.length > 0) {
+  // 사용자 언어 데이터가 없을 경우에만 정규화 실행
+  if (normalizedLanguageTechStack.length > 0 && !userLanguages) {
     // 총 usage 합계 계산
     const totalUsage = normalizedLanguageTechStack.reduce((sum, tech) => sum + tech.usage, 0);
     
@@ -75,6 +85,11 @@ export default function TechStackSection({
     } else {
       normalizedLanguageTechStack = mainLanguages;
     }
+  } else if (userLanguages) {
+    // 사용자 언어 데이터가 있는 경우 바로 정렬
+    normalizedLanguageTechStack.sort((a, b) => 
+      (b.normalizedUsage || b.usage) - (a.normalizedUsage || a.usage)
+    );
   }
   
   // 데이터 변환

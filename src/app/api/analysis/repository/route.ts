@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeRepository } from '@/lib/analyzer';
+import { analyzeRepository } from '@/modules/analyzer';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 // 분석 진행 캐시 참조
-import { analysisProgressCache } from '../progress/route';
+import { analysisProgressCache } from '@/lib/cache';
 
 /**
  * POST /api/analysis/repository
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
     
     console.log('저장소 분석 요청 시작:', owner, repo);
     console.log('캐시 초기화 완료:', repoKey);
+    console.log('현재 캐시 키 목록:', Object.keys(analysisProgressCache));
     
     // 분석 프로세스 시작 (백그라운드에서 실행)
     (async () => {
@@ -72,12 +73,30 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error('백그라운드 분석 처리 오류:', error);
         
+        // 오류 메시지 가공
+        let errorMessage = '알 수 없는 오류가 발생했습니다.';
+        
+        if (error instanceof Error) {
+          errorMessage = error.message;
+          
+          // 네트워크 관련 오류 메시지를 사용자 친화적으로 변경
+          if (errorMessage.includes('other side closed') || 
+              errorMessage.includes('ECONNRESET') ||
+              errorMessage.includes('ETIMEDOUT')) {
+            errorMessage = 'GitHub API 연결이 끊어졌습니다. 잠시 후 다시 시도해 주세요.';
+          } else if (errorMessage.includes('rate limit')) {
+            errorMessage = 'GitHub API 호출 제한에 도달했습니다. 잠시 후 다시 시도해 주세요.';
+          }
+        }
+        
         // 오류 상태 저장
         if (analysisProgressCache[repoKey]) {
           analysisProgressCache[repoKey] = {
             ...analysisProgressCache[repoKey],
+            progress: 100,
+            stage: 'finalizing',
             completed: true,
-            error: { message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.' },
+            error: { message: errorMessage },
             lastUpdated: Date.now()
           };
         }
