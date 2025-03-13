@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, use } from 'react'
+import React, { useState, useEffect, useCallback, use } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { AnalysisResult } from '@/modules/analyzer'
 import {
@@ -14,6 +14,16 @@ import {
 } from '@/components/analysis'
 import Image from 'next/image'
 import AnalysisLoading from '@/components/analysis/AnalysisLoading'
+import { CodeQualityMetrics as CodeQualityMetricsType } from '@/lib/codeQualityAnalyzer'
+
+// CodeQualityMetricsData 타입 정의
+type CodeQualityMetricsData = {
+  readability: number;
+  maintainability: number;
+  testCoverage: number;
+  documentation: number;
+  architecture: number;
+}
 
 // 우선순위 색상 매핑
 const PRIORITY_COLORS: Record<string, string> = {
@@ -60,6 +70,16 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
 
   // 분석 재시작 방지를 위한 상태
   const [analysisRequested, setAnalysisRequested] = useState(false);
+  
+  // 할당량 정보를 저장할 상태 추가
+  const [quotaInfo, setQuotaInfo] = useState<{
+    hasQuota: boolean;
+    remaining: number;
+    isAdmin: boolean;
+  }>({ hasQuota: false, remaining: 0, isAdmin: false });
+  
+  // 할당량 로딩 상태
+  const [quotaLoading, setQuotaLoading] = useState(true);
 
   // 인증 상태 확인
   useEffect(() => {
@@ -67,6 +87,31 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
       router.push('/auth/login-required')
     }
   }, [status, router])
+  
+  // 할당량 정보 조회
+  useEffect(() => {
+    const fetchQuota = async () => {
+      if (status !== 'authenticated') return;
+      
+      try {
+        const response = await fetch('/api/user/quota');
+        if (response.ok) {
+          const data = await response.json();
+          setQuotaInfo({
+            hasQuota: data.quota.remaining > 0 || data.quota.isAdmin,
+            remaining: data.quota.remaining,
+            isAdmin: data.quota.isAdmin
+          });
+        }
+      } catch (error) {
+        console.error('할당량 정보 로딩 오류:', error);
+      } finally {
+        setQuotaLoading(false);
+      }
+    };
+    
+    fetchQuota();
+  }, [status]);
 
   // 저장소 분석 실행
   useEffect(() => {
@@ -287,6 +332,13 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
 
   // 분석 실행 함수
   const runAnalysis = async () => {
+    // 할당량이 없으면 분석 실행 불가
+    if (!quotaInfo.hasQuota && !quotaInfo.isAdmin) {
+      setError('오늘의 분석 횟수를 모두 사용했습니다. 내일 다시 시도해 주세요.');
+      setIsLoading(false);
+      return;
+    }
+    
     // 이미 분석 중이면 중복 실행하지 않음
     if (isLoading && progress.progress > 0) {
       console.log('분석이 이미 진행 중입니다. 중복 실행하지 않습니다.');
@@ -295,6 +347,53 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
     
     setIsLoading(true);
     setError(null);
+    setProgress({ progress: 1, stage: 'preparing', completed: false });
+    
+    // 분석 진행 상태 확인 함수 - runAnalysis 내부에 정의
+    const checkProgressStatus = async () => {
+      try {
+        const repoKey = `${owner}/${repo}`;
+        const statusResponse = await fetch(`/api/analysis/progress?repo=${encodeURIComponent(repoKey)}`);
+        
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          console.log('분석 진행 상태:', statusData);
+          
+          // 진행 상태 업데이트
+          setProgress(statusData);
+          
+          // 완료된 경우 결과 표시
+          if (statusData.completed && statusData.result) {
+            setAnalysis(statusData.result);
+            setIsLoading(false);
+            
+            // 할당량 정보 업데이트 (분석 완료 시 할당량이 줄어듦)
+            if (statusData.result.quota) {
+              setQuotaInfo(statusData.result.quota);
+            }
+            return; // 완료됨
+          }
+          
+          // 에러가 있는 경우
+          if (statusData.error) {
+            setError(statusData.error.message);
+            setIsLoading(false);
+            return; // 오류로 종료
+          }
+          
+          // 계속 진행 중인 경우 5초 후 다시 확인
+          setTimeout(checkProgressStatus, 5000);
+        } else {
+          // 응답 오류 - 10초 후 다시 시도
+          console.error('분석 상태 확인 응답 오류:', statusResponse.status);
+          setTimeout(checkProgressStatus, 10000);
+        }
+      } catch (err) {
+        console.error('분석 상태 확인 중 오류:', err);
+        // 오류 발생 시 10초 후 다시 시도
+        setTimeout(checkProgressStatus, 10000);
+      }
+    };
     
     try {
       if (!session?.accessToken) {
@@ -311,45 +410,78 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
       
       // API 엔드포인트를 통해 분석 요청
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20초 타임아웃
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30초 타임아웃으로 늘림
       
       try {
+        // 전송되는 데이터를 로깅
+        const requestData = {
+          owner,
+          repo,
+          options: {
+            personalAnalysis: true,
+            userLogin: session.user?.name || undefined,
+            userEmail: session.user?.email || undefined,
+            onlyUserCommits: onlyUserCommits
+          }
+        };
+        
+        console.log('분석 요청 데이터:', JSON.stringify(requestData));
+        
+        // 요청 시작
         const response = await fetch('/api/analysis/repository', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            accessToken: session.accessToken,
-            owner,
-            repo,
-            options: {
-              personalAnalysis: true,
-              userLogin: session.user?.name || undefined,
-              userEmail: session.user?.email || undefined,
-              onlyUserCommits: onlyUserCommits
-            }
-          }),
+          body: JSON.stringify(requestData),
           signal: controller.signal
         });
         
         clearTimeout(timeoutId);
         
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error('분석 요청 응답 오류:', response.status, errorText);
           throw new Error(`분석 요청 실패: ${response.status} ${response.statusText}`);
         }
         
-        // 추가: 분석 요청 결과 확인
+        // 분석 요청 결과 확인
         const result = await response.json();
         console.log('분석 요청 결과:', result);
         
-        // 분석이 시작되면 진행 상태를 확인하는 로직이 실행됨
+        // 성공 메시지 표시
+        setProgress({
+          progress: 5,
+          stage: 'preparing',
+          completed: false,
+          message: result.message || '분석이 시작되었습니다. 잠시만 기다려주세요...'
+        });
+        
+        // 5초 후에 첫 번째 진행 상태 확인을 시작
+        setTimeout(() => {
+          checkProgressStatus();
+        }, 5000);
+        
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
         
         if (fetchError.name === 'AbortError') {
-          throw new Error('분석 요청 시간이 초과되었습니다.');
+          console.warn('분석 요청 시간 초과, 하지만 서버에서 분석이 계속 진행될 수 있습니다.');
+          
+          // 타임아웃 발생 시에도 진행 상황 확인 시작
+          setProgress({
+            progress: 2,
+            stage: 'preparing',
+            completed: false,
+            message: '분석 요청이 시간 초과되었지만, 서버에서 분석이 계속 진행 중일 수 있습니다. 진행 상황을 확인합니다...'
+          });
+          
+          // 즉시 진행 상태 확인 시작
+          checkProgressStatus();
+          return; // 오류로 처리하지 않고 진행 상태 확인으로 넘어감
         }
+        
+        // 다른 오류는 그대로 던짐
         throw fetchError;
       }
     } catch (err) {
@@ -725,15 +857,15 @@ export default function RepositoryAnalysis({ params }: AnalysisPageProps) {
             score={analysis.codeQuality || 70}
             metrics={{
               readability: typeof analysis.codeQualityMetrics === 'object' && 'readability' in analysis.codeQualityMetrics 
-                ? (analysis.codeQualityMetrics as any).readability : 70,
+                ? (analysis.codeQualityMetrics as CodeQualityMetricsData).readability : 70,
               maintainability: typeof analysis.codeQualityMetrics === 'object' && 'maintainability' in analysis.codeQualityMetrics
-                ? (analysis.codeQualityMetrics as any).maintainability : 65,
+                ? (analysis.codeQualityMetrics as CodeQualityMetricsData).maintainability : 65,
               testCoverage: typeof analysis.codeQualityMetrics === 'object' && 'testCoverage' in analysis.codeQualityMetrics
-                ? (analysis.codeQualityMetrics as any).testCoverage : 50,
+                ? (analysis.codeQualityMetrics as CodeQualityMetricsData).testCoverage : 50,
               documentation: typeof analysis.codeQualityMetrics === 'object' && 'documentation' in analysis.codeQualityMetrics
-                ? (analysis.codeQualityMetrics as any).documentation : 60,
+                ? (analysis.codeQualityMetrics as CodeQualityMetricsData).documentation : 60,
               architecture: typeof analysis.codeQualityMetrics === 'object' && 'architecture' in analysis.codeQualityMetrics
-                ? (analysis.codeQualityMetrics as any).architecture : 75
+                ? (analysis.codeQualityMetrics as CodeQualityMetricsData).architecture : 75
             }}
             analysisType="repository"
             userLogin={session?.user?.name || undefined}

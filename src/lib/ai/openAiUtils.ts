@@ -101,7 +101,8 @@ export async function callOpenAI<T = any>(options: AIRequestOptions): Promise<T>
       return createFallbackResponse() as unknown as T;
     }
     
-    throw error;
+    // 텍스트 응답인 경우 오류 메시지 반환
+    return '분석 중 오류가 발생했습니다. 다시 시도해 주세요.' as unknown as T;
   }
 }
 
@@ -128,27 +129,27 @@ function createFallbackResponse() {
       }
     },
     "테스트 커버리지": {
-      "점수": 40,
+      "점수": 50,
       "근거": {
-        "테스트 도구 존재 여부": "확인 불가",
-        "테스트 관련 커밋 수": "확인 불가",
-        "테스트 코드 비율": "확인 불가"
+        "테스트 코드 유무": "확인 불가",
+        "테스트 관련 커밋 비율": "확인 불가",
+        "테스트 프레임워크 사용": "확인 불가"
       }
     },
     "문서화": {
-      "점수": 45,
+      "점수": 50,
       "근거": {
-        "문서화 도구 사용 여부": "확인 불가",
-        "문서화 관련 커밋 수": "확인 불가",
-        "API 문서 존재 여부": "확인 불가"
+        "문서화 수준": "확인 불가",
+        "주석 사용 정도": "확인 불가",
+        "문서 관련 커밋 비율": "확인 불가"
       }
     },
     "아키텍처": {
       "점수": 50,
       "근거": {
-        "프로젝트 구조의 명확성": "확인 불가",
-        "기술 선택의 적절성": "확인 불가",
-        "확장성 고려 여부": "확인 불가"
+        "코드 구조": "확인 불가",
+        "디자인 패턴 사용": "확인 불가",
+        "모듈화 수준": "확인 불가"
       }
     }
   };
@@ -309,6 +310,8 @@ export function createRepositoryAnalysisPrompt(
     commitMessages: string[];
     fileTypes: Record<string, number>;
     languages: Record<string, number>;
+    description?: string;
+    topics?: string[];
   },
   options: {
     personalAnalysis: boolean;

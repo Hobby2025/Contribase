@@ -10,9 +10,109 @@ import { AnalysisResult } from '@/modules/analyzer/types';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { analyzeRepository } from '@/modules/analyzer';
+import { checkUserAnalysisQuota, incrementAnalysisUsage } from '@/lib/userQuota';
+import { Session } from 'next-auth';
+
+/**
+ * 개발자 프로필 분석 결과 인터페이스
+ */
+interface DeveloperProfileResult {
+  error?: string;
+  message: string;
+}
+
+/**
+ * 개발 패턴 분석 결과 인터페이스
+ */
+interface DevelopmentPatternResult {
+  peakProductivityTime: string;
+  commitFrequency: string;
+  codeReviewStyle: string;
+  iterationSpeed: string;
+  focusAreas: string[];
+  workPatterns: {
+    time: string;
+    dayOfWeek: string;
+    mostActiveDay: string;
+    mostActiveHour: number;
+  };
+  teamDynamics: string;
+  developmentCycle: string;
+}
+
+/**
+ * 커밋 데이터 인터페이스
+ */
+interface CommitData {
+  message?: string;
+  date?: string;
+  author?: {
+    name?: string;
+    email?: string;
+  };
+  commit?: {
+    message?: string;
+    author?: {
+      name?: string;
+      date?: string;
+    };
+    committer?: {
+      date?: string;
+    };
+  };
+  additions?: number;
+  deletions?: number;
+  stats?: {
+    additions: number;
+    deletions: number;
+  };
+  files?: Array<{
+    filename?: string;
+    path?: string;
+    additions?: number;
+    deletions?: number;
+  } | string>;
+}
+
+// 세션에서 사용자 ID를 추출하는 함수
+function getUserIdFromSession(session: Session | null): string | null {
+  if (!session?.user) return null;
+  
+  // id가 있으면 id를, 없으면 email을 사용
+  return session.user.id || session.user.email || null;
+}
 
 export async function POST(request: NextRequest) {
   try {
+    // 인증 확인
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: '인증되지 않은 요청입니다.' },
+        { status: 401 }
+      );
+    }
+
+    // 사용자 할당량 확인
+    const userId = getUserIdFromSession(session);
+    if (!userId) {
+      return NextResponse.json(
+        { error: '사용자 ID를 확인할 수 없습니다.' },
+        { status: 400 }
+      );
+    }
+    
+    const quotaInfo = await checkUserAnalysisQuota(userId);
+    
+    // 할당량이 부족한 경우
+    if (!quotaInfo.hasQuota) {
+      return NextResponse.json({
+        error: '오늘의 분석 횟수를 모두 사용했습니다. 내일 다시 시도해 주세요.',
+        quota: quotaInfo
+      }, { status: 429 }); // Too Many Requests
+    }
+
+    // 요청 데이터 파싱
     const body = await request.json();
     const { prompt, type, messages, changes } = body;
 
@@ -52,7 +152,8 @@ export async function POST(request: NextRequest) {
       // 분석 수행
       const result = await analyzeCodeChanges(limitedChanges);
       
-      console.log(`✅ 코드 분석 완료 - 결과:`, JSON.stringify(result, null, 2).substring(0, 300) + '...');
+      // 간략한 요약 로깅 (전체 JSON 출력 방지)
+      console.log(`✅ 코드 분석 완료 - 분석된 파일 수: ${limitedChanges.length}`);
       
       // 결과 반환
       return NextResponse.json(result);
@@ -125,8 +226,17 @@ export async function POST(request: NextRequest) {
             onlyUserCommits: onlyUserCommitsParam === true || onlyUserCommitsParam === 'true'
           });
           
-          // 결과 반환
-          return NextResponse.json(result);
+          // 분석 성공 시 사용량 증가
+          await incrementAnalysisUsage(userId);
+          
+          // 업데이트된 할당량 정보 조회
+          const updatedQuota = await checkUserAnalysisQuota(userId);
+          
+          // 결과 반환 (할당량 정보 포함)
+          return NextResponse.json({
+            ...result,
+            quota: updatedQuota
+          });
         } catch (analysisError: any) {
           console.error('저장소 분석 중 오류 발생:', analysisError);
           return NextResponse.json(
@@ -192,7 +302,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 개발자 프로필 분석 (규칙 기반)
-function analyzeDeveloperProfile(promptData: any) {
+function analyzeDeveloperProfile(promptData: Record<string, unknown>): DeveloperProfileResult {
   try {
     console.log('개발자 프로필 기능이 비활성화되었습니다.');
     
@@ -202,12 +312,18 @@ function analyzeDeveloperProfile(promptData: any) {
     console.error('개발자 프로필 분석 오류:', error);
     
     // 오류 발생 시 명확한 오류 메시지와 함께 빈 응답 반환
-    throw new Error('개발자 프로필 분석 기능은 더 이상 지원되지 않습니다.');
+    return {
+      error: error instanceof Error ? error.message : '알 수 없는 오류',
+      message: '개발자 프로필 분석 기능은 더 이상 지원되지 않습니다.'
+    };
   }
 }
 
 // 개발 패턴 분석 (규칙 기반)
-function analyzeDevelopmentPattern(promptData: any) {
+function analyzeDevelopmentPattern(promptData: {
+  commits?: CommitData[];
+  userLogin?: string;
+}): DevelopmentPatternResult {
   try {
     console.log('API 서버에서 개발 패턴 분석 중...');
     const commits = promptData?.commits || [];

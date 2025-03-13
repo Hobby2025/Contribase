@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import AnalysisLoading from './AnalysisLoading'
+import { QuotaEvents } from '../QuotaBadge'
 
 interface AnalysisProgressProps {
   repositoryName: string;
@@ -102,6 +103,14 @@ export default function AnalysisProgress({
               console.log('분석 완료됨, 결과 있음:', !!data.result);
               isCompletedRef.current = true;
               clearInterval(pollInterval);
+              
+              // 할당량 정보가 포함되어 있는지 확인하고 할당량 업데이트 이벤트 발행
+              if (data.result.quota || data.message === '할당량 업데이트가 필요합니다') {
+                console.log('할당량 정보 업데이트 이벤트 발행');
+                // 할당량 업데이트 이벤트 발행
+                QuotaEvents.notifyUpdate();
+              }
+              
               onComplete(data.result);
               return;
             }

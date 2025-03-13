@@ -47,6 +47,34 @@ export default function Dashboard() {
   // 사용자가 자신의 커밋만 분석할 수 있도록 상태 추가
   const [onlyUserCommits, setOnlyUserCommits] = useState(true);
 
+  const [quotaInfo, setQuotaInfo] = useState<{
+    hasQuota: boolean;
+    remaining: number;
+  }>({ hasQuota: false, remaining: 0 });
+  
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchQuota = async () => {
+      try {
+        const response = await fetch('/api/user/quota');
+        if (response.ok) {
+          const data = await response.json();
+          setQuotaInfo({
+            hasQuota: data.quota.remaining > 0,
+            remaining: data.quota.remaining
+          });
+        }
+      } catch (error) {
+        console.error('할당량 정보 로딩 오류:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchQuota();
+  }, []);
+  
   // URL 파라미터 확인
   useEffect(() => {
     // 브라우저에서만 실행
@@ -219,7 +247,7 @@ export default function Dashboard() {
   }, [status, session])
 
   // 저장소 분석 함수 수정
-  const analyzeRepository = (owner: string, repo: string) => {
+  const analyzeRepository = async (owner: string, repo: string) => {
     // 분석 시작 상태 설정
     setIsLoading(true);
     setError(null);
@@ -231,11 +259,54 @@ export default function Dashboard() {
       return;
     }
     
-    // 프로그레스 페이지로 이동 (분석 진행 상황을 보여주기 위함)
-    // 분석 옵션을 URL 파라미터로 전달
-    router.push(`/dashboard/analysis/${owner}/${repo}?onlyUserCommits=${onlyUserCommits}`);
-    
-    // API 호출은 분석 페이지에서 처리
+    try {
+      // 분석 옵션 설정
+      const requestData = {
+        owner,
+        repo,
+        options: {
+          personalAnalysis: true,
+          userLogin: session.user?.name || undefined,
+          userEmail: session.user?.email || undefined,
+          onlyUserCommits: onlyUserCommits
+        }
+      };
+      
+      console.log('분석 API 요청 전송:', {
+        owner,
+        repo,
+        options: {
+          personalAnalysis: true,
+          userLogin: session.user?.name || undefined,
+          onlyUserCommits
+        }
+      });
+      
+      // 먼저 API를 직접 호출하여 분석 시작
+      const response = await fetch('/api/analysis/repository', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `API 오류: ${response.status}`);
+      }
+      
+      // 응답 확인
+      const result = await response.json();
+      console.log('분석 API 응답:', result);
+      
+      // 분석이 시작되면 프로그레스 페이지로 이동
+      router.push(`/dashboard/analysis/${owner}/${repo}?onlyUserCommits=${onlyUserCommits}`);
+    } catch (error) {
+      console.error('분석 요청 실패:', error);
+      setError(error instanceof Error ? error.message : '분석을 시작하는 중 오류가 발생했습니다.');
+      setIsLoading(false);
+    }
   };
 
   // 검색 필터 및 탭 필터
@@ -613,7 +684,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="container max-w-6xl mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">      
+      {/* 기존 대시보드 컨텐츠 */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">GitHub 저장소</h1>
         <button 
