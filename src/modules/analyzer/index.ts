@@ -1,15 +1,110 @@
 import { Octokit } from '@octokit/rest';
 import { analysisProgressCache, updateAnalysisProgress } from '@/lib/cache';
 import crypto from 'crypto';
-import { analyzeCodeQuality, calculateOverallQuality } from '@/lib/codeQualityAnalyzer';
+import { analyzeCodeQuality, calculateOverallQuality, CodeQualityMetrics } from '@/lib/codeQualityAnalyzer';
 import OpenAI from 'openai';
+import { callOpenAI, OpenAIModel } from '@/lib/ai/openAiUtils';
 
-function analyzeWithAI(data: any, options: any): Promise<any> {
-  return Promise.resolve({});
+/**
+ * AI 분석 데이터 유형
+ */
+type AIAnalysisData = 
+  | RepositoryAnalysisData
+  | CommitAnalysisData
+  | CodeAnalysisData;
+
+/**
+ * 저장소 분석 데이터
+ */
+interface RepositoryAnalysisData {
+  repositoryContent?: string;
+  commitMessages?: string[];
+  fileTypes?: Record<string, number>;
+  languages?: Record<string, number>;
+  description?: string;
+  topics?: string[];
+  owner?: string;
+  name?: string;
 }
+
+/**
+ * 커밋 분석 데이터
+ */
+interface CommitAnalysisData {
+  messages: string[];
+}
+
+/**
+ * 코드 분석 데이터
+ */
+interface CodeAnalysisData {
+  changes: string[];
+  additions?: number;
+  deletions?: number;
+  language?: string;
+}
+
+// 타입 정의
+type AnalyzeWithAIOptions = {
+  model?: OpenAIModel;
+  userLogin?: string;
+  userEmail?: string;
+  personalAnalysis?: boolean;
+  temperature?: number;
+  analysisType: 'repository' | 'commits' | 'code';
+};
+
+/**
+ * AI를 사용하여 데이터를 분석하는 함수
+ * @param data 분석할 데이터
+ * @param options 분석 옵션
+ */
+async function analyzeWithAI<T>(data: AIAnalysisData, options: AnalyzeWithAIOptions): Promise<T> {
+  console.log(`[AI 분석] ${options.analysisType} 분석 시작`);
+  
+  try {
+    // 분석 유형에 따른 프롬프트 생성
+    let prompt: string;
+    let systemPrompt: string;
+    
+    switch (options.analysisType) {
+      case 'repository':
+        systemPrompt = '당신은 고급 코드 분석 전문가입니다. 저장소 데이터를 분석하여 통찰력 있는 결과를 제공하세요.';
+        prompt = JSON.stringify(data);
+        break;
+      case 'commits':
+        systemPrompt = '당신은 커밋 메시지 분석 전문가입니다. 커밋 데이터를 분석하여 패턴을 파악하세요.';
+        prompt = JSON.stringify(data);
+        break;
+      case 'code':
+        systemPrompt = '당신은 코드 품질 전문가입니다. 제공된 코드 변경 사항을 검토하고 품질 평가를 수행하세요.';
+        prompt = JSON.stringify(data);
+        break;
+      default:
+        throw new Error(`지원되지 않는 분석 유형: ${options.analysisType}`);
+    }
+    
+    // OpenAI API 호출
+    const result = await callOpenAI({
+      model: options.model || 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      temperature: options.temperature || 0.2,
+      response_format: { type: 'json_object' }
+    });
+    
+    console.log(`[AI 분석] ${options.analysisType} 분석 완료`);
+    return result as T;
+  } catch (error) {
+    console.error(`[AI 분석] ${options.analysisType} 분석 중 오류 발생:`, error);
+    throw new Error(`AI 분석 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+  }
+}
+
 // 타입 정의 (충돌 방지)
 type CommitCategory = string;
-import { callOpenAI } from '@/lib/ai/openAiUtils';
 
 // 분석 결과 타입 정의
 export interface AnalysisResult {
@@ -44,7 +139,7 @@ export interface AnalysisResult {
   recommendations: { title: string; description: string; priority: 'high' | 'medium' | 'low' }[];
   summary: string;
   codeQuality: number;
-  codeQualityMetrics: any;
+  codeQualityMetrics: CodeQualityMetrics;
   meta: {
     generatedAt: string;
     version: string;
@@ -83,18 +178,28 @@ interface CommitData {
   }>;
 }
 
-// 재시도 유틸리티 함수 추가
+/**
+ * API 호출을 재시도하는 유틸리티 함수
+ * @param fn 실행할 비동기 함수
+ * @param retries 재시도 횟수
+ * @param delay 초기 지연 시간(ms)
+ * @returns 함수 실행 결과
+ */
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
   try {
     return await fn();
-  } catch (error: any) {
-    if (retries <= 0) throw error;
+  } catch (error: unknown) {
+    if (retries <= 0) {
+      console.error('최대 재시도 횟수 초과, 오류 전파:', error instanceof Error ? error.message : '알 수 없는 오류');
+      throw error;
+    }
     
-    console.log(`API 호출 실패, ${retries}회 재시도 예정... (${delay}ms 후)`);
+    const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+    console.log(`API 호출 실패 (${errorMessage}), ${retries}회 재시도 예정... (${delay}ms 후)`);
     await new Promise(resolve => setTimeout(resolve, delay));
     
     // 재귀적으로 재시도, 지수 백오프 적용
-    return withRetry(fn, retries - 1, delay * 1.5);
+    return withRetry(fn, retries - 1, Math.floor(delay * 1.5));
   }
 }
 
@@ -284,15 +389,52 @@ async function getRepositoryInfo(
   }
 }
 
+/**
+ * GPT를 사용한 저장소 분석 결과 인터페이스
+ */
+interface GPTAnalysisResult {
+  aiProjectType: string;
+  summary: string;
+  techStack?: Array<{ name: string; type: string; usage: number; confidence: number }>;
+  domains?: string[];
+  characteristics?: Array<{ type: string; score: number; description: string }>;
+  developmentPattern: {
+    commitFrequency: string;
+    developmentCycle: string;
+    teamDynamics: string;
+    workPatterns: {
+      time: string;
+      dayOfWeek: string;
+      mostActiveDay: string;
+      mostActiveHour: number;
+    };
+  };
+  keyFeatures: Array<{ title: string; description: string; importance: number }>;
+  insights?: Array<{ title: string; description: string }>;
+  recommendations?: Array<{ title: string; description: string; priority: string }>;
+  error?: string;
+}
+
 // analyzeWithGPT 함수 구현
 async function analyzeWithGPT(
-  repositoryData: any,
+  repositoryData: {
+    repositoryContent?: string;
+    commitMessages?: string[];
+    fileTypes?: Record<string, number>;
+    languages?: Record<string, number>;
+    description?: string;
+    topics?: string[];
+    commits?: any[];
+    techStack?: any[];
+    fileExtensions?: [string, number][];
+    repoInfo?: any;
+  },
   options: { 
     personalAnalysis?: boolean;
     userLogin?: string;
     userEmail?: string;
   }
-): Promise<any> {
+): Promise<GPTAnalysisResult> {
   console.log('[GPT 분석] 분석 시작...');
   console.log('[GPT 분석] 분석 옵션:', JSON.stringify(options));
   
@@ -792,7 +934,13 @@ export async function analyzeRepository(
       recommendations: aiAnalysisData.recommendations || [],
       summary: aiAnalysisData.summary || `${repo} 저장소 분석이 완료되었습니다.`,
       codeQuality: 0,
-      codeQualityMetrics: {},
+      codeQualityMetrics: {
+        readability: 0,
+        maintainability: 0,
+        testCoverage: 0,
+        documentation: 0,
+        architecture: 0
+      },
       meta: {
         generatedAt: new Date().toISOString(),
         version: '1.0.0'

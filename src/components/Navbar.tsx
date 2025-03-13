@@ -7,6 +7,7 @@ import { signIn, signOut, useSession } from 'next-auth/react'
 import Image from 'next/image'
 import { useTheme } from './common/ThemeProvider'
 import { APP_VERSION } from '@/utils/config'
+import QuotaBadge from './QuotaBadge'
 
 // 메뉴 항목 타입 정의
 type MenuItem = {
@@ -135,25 +136,28 @@ export default function Navbar() {
             
             {session ? (
               <div className="relative" data-profile-menu>
-                <button 
-                  onClick={toggleProfileMenu} 
-                  className="flex items-center space-x-2 focus:outline-none"
-                  aria-label="프로필 메뉴 열기"
-                >
-                  {session.user?.image ? (
-                    <Image 
-                      src={session.user.image} 
-                      alt={session.user.name || "사용자"} 
-                      width={32} 
-                      height={32} 
-                      className="h-8 w-8 rounded-full border-2 border-gray-200 dark:border-gray-700"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-400">
-                      {session.user?.name?.charAt(0) || "U"}
-                    </div>
-                  )}
-                </button>
+                <div className="flex items-center space-x-3">
+                  <QuotaBadge />
+                  <button 
+                    onClick={toggleProfileMenu} 
+                    className="flex items-center space-x-2 focus:outline-none"
+                    aria-label="프로필 메뉴 열기"
+                  >
+                    {session.user?.image ? (
+                      <Image 
+                        src={session.user.image} 
+                        alt={session.user.name || "사용자"} 
+                        width={32} 
+                        height={32} 
+                        className="h-8 w-8 rounded-full border-2 border-gray-200 dark:border-gray-700"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-400">
+                        {session.user?.name?.charAt(0) || "U"}
+                      </div>
+                    )}
+                  </button>
+                </div>
                 
                 {isProfileMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 border border-gray-100 dark:border-gray-700">
